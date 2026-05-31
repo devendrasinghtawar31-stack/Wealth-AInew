@@ -7,7 +7,7 @@ export const API = axios.create({
     timeout: 10000,
 });
 
-// 👑 Exporting tokenStorage for AuthContext usage
+// Exporting tokenStorage for AuthContext usage
 export const tokenStorage = {
     getAccess: () => localStorage.getItem('token') || localStorage.getItem('accessToken'),
     getRefresh: () => localStorage.getItem('refreshToken'),
