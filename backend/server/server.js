@@ -59,7 +59,14 @@ app.use(express.json({
 }));
 
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+const cors = require('cors');
+
+// Express app ke upar ye line add karo:
+app.use(cors({
+  origin: "https://wealth-ainew.onrender.com", // Sirf tumhari frontend site ko allow karega
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
 //Routes(test)
 app.get('/', (req, res) => {
