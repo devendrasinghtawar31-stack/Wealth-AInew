@@ -1,10 +1,19 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Production mein localhost ki jagah undefined/error aana behtar hai 
+// taaki humein pata chale ki environment variable load nahi hua.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+if (!BASE_URL) {
+    console.error("CRITICAL ERROR: VITE_API_BASE_URL is not defined in your environment variables!");
+}
 
 export const API = axios.create({
     baseURL: BASE_URL,
     timeout: 10000,
+    headers: {
+        'Content-Type': 'application/json',
+    }
 });
 
 // Exporting tokenStorage for AuthContext usage
@@ -67,6 +76,7 @@ API.interceptors.response.use(
                 const refreshToken = tokenStorage.getRefresh();
                 if (!refreshToken) throw new Error("No refresh token");
 
+                // Yahan direct axios use kiya hai kyunki API instance loop mein fas sakta hai
                 const res = await axios.post(`${BASE_URL}/users/refresh-token`, { refreshToken });
                 const newAccessToken = res.data?.accessToken || res.data?.token;
 
