@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import API, { tokenStorage } from "../config/api"; // API aur tokenStorage dono import kiye
+import API, { tokenStorage } from "../config/api.js"; // API aur tokenStorage dono import kiye
 
 const AuthContext = createContext(null);
 

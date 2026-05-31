@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { theme } from "../../theme";
-import API from "../../config/api";
+import API from "../../config/api.js";
 import GoalProgressBar from "./GoalProgressBar";
 import GoalCreateForm from "./GoalCreateForm";
 

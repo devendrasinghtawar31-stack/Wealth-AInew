@@ -1,5 +1,5 @@
 import { useState } from "react";
-import API from "../config/api"
+import API from "../config/api.js"
 
 export const useRazorpay = () => {
     const [loading, setLoading] = useState(false);

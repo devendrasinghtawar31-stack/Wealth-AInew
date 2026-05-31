@@ -4,7 +4,7 @@ import MetricCards from "./MetricCards.jsx"; //  Summary cards connector
 import TransactionLedger from "./TransactionLedger.jsx"; //  Live ledger list
 import AddTransactionForm from "./AddTransactionForm.jsx"; //  Manual data insertion form
 import SmsSimulator from "./SmsSimulator.jsx"; // Connected device simulator
-import API from "../../config/api"; //  AXIOS INTERCEPTOR UPGRADE: Silent refresh integration link
+import API from "../../config/api.js"; //  AXIOS INTERCEPTOR UPGRADE: Silent refresh integration link
 import AnalyticsChart from "./AnalyticsChart.jsx";
 
 const FinancialDashboard = () => {

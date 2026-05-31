@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../theme';
-import API from '../../config/api';
+import API from '../../config/api.js';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();

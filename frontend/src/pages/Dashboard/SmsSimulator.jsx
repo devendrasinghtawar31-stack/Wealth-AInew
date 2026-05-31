@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { theme } from "../../theme"; // 👑 Theme configurations backup sync
-import API from "../../config/api"; // 👑 Hamara bawal refresh token core interceptor
+import { theme } from "../../theme"; //  Theme configurations backup sync
+import API from "../../config/api.js"; // Hamara bawal refresh token core interceptor
 
 const SmsSimulator = ({ onSmsProcessed }) => {
     const [isOpen, setIsOpen] = useState(false); // Developer toggle window

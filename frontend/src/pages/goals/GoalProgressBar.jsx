@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { theme } from "../../theme";
-import API from "../../config/api";
+import API from "../../config/api.js";
 
 const GoalProgressBar = ({ goal, onProgressUpdated }) => {
     const [updating, setUpdating] = useState(false);

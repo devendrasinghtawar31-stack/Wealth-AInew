@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { theme } from "../../theme";
-import API from "../../config/api";
+import API from "../../config/api.js";
 
 //  Props me 'lastSpunAt' add kar diya
 const SpinWheelModal = ({ onClose, updateWalletCoins, lastSpunAt }) => {

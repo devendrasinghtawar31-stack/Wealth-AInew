@@ -1,5 +1,5 @@
 // cryptoService.js
-import API from "../../config/api"; // Apne directory architecture ke hisab se sahi path check kar lena
+import API from "../../config/api.js"; // Apne directory architecture ke hisab se sahi path check kar lena
 
 /**
  *  Integration Engine

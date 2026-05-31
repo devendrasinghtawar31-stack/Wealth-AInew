@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { theme } from "../../theme"; //  Theme properties sync link
-import API from "../../config/api"; //  AXIOS INTERCEPTOR UPGRADE: Silent refresh token mechanism link
+import API from "../../config/api.js"; //  AXIOS INTERCEPTOR UPGRADE: Silent refresh token mechanism link
 
 const AddTransactionForm = ({ onTransactionAdded }) => {
     const [isOpen, setIsOpen] = useState(false); // Toggle layout state

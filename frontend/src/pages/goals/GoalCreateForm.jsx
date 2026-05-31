@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { theme } from "../../theme";
-import API from "../../config/api";
+import API from "../../config/api.js";
 
 const GoalCreateForm = ({ onGoalCreated }) => {
   const [isOpen, setIsOpen] = useState(false); // Modal toggle status

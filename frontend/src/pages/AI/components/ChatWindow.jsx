@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { theme } from "../../../theme";
-import API from "../../../config/api";
+import API from "../../../config/api.js";
 
 const ChatWindow = () => {
   const [messages, setMessages] = useState([
