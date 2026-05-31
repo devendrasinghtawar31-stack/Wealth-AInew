@@ -1,5 +1,5 @@
 import { useState } from "react";
-import API from "../config/API"; // 👈 API.js ka path apne hisaab se adjust kar lena
+import API from "../config/api"
 
 export const useRazorpay = () => {
     const [loading, setLoading] = useState(false);
