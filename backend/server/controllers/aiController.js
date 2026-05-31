@@ -110,11 +110,15 @@ const getFinancialAdvice = asyncHandler(async (req, res, next) => {
         });
 
     } catch (apiErr) {
-        console.error("❌ [AI CRITICAL] Gemini API Call Crashed:", apiErr);
-        return res.status(500).json({ 
-            success: false, 
-            reply: "Bhai, Gemini API processing engine daddak gaya hai. Apne config/gemini.js ka syntax validation check karo." 
-        });
+        if (error.status === 429) { 
+            console.warn("AI Quota Exceeded, sending fallback data");
+            return res.status(200).json({ 
+                message: "AI limit reached, showing cached data",
+                totalIncomeCalculated: 0, 
+                totalExpenseCalculated: 0 
+            });
+        }
+       res.status(500).json({ message: "Server Error" });
     }
 });
 
