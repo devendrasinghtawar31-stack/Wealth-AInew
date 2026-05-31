@@ -1,6 +1,6 @@
 import Transaction from "../models/transactionModel.js";
 import Goal from "../models/goalModel.js";
-import User from "../models/userModel.js";
+import User from "../models/UserModel.js";
 import ai from "../config/gemini.js";
 import asyncHandler from "express-async-handler";
 import ErrorResponse from "../../utils/errorResponse.js";
