@@ -1,12 +1,15 @@
 import axios from 'axios';
 
-// Production mein localhost ki jagah undefined/error aana behtar hai 
-// taaki humein pata chale ki environment variable load nahi hua.
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// 1. Environment Variable check
+let BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// 2. Agar variable nahi mila, toh fallback URL use karo (yahan tumhara actual production backend URL daalo)
 if (!BASE_URL) {
-    console.error("CRITICAL ERROR: VITE_API_BASE_URL is not defined in your environment variables!");
+    console.warn("VITE_API_BASE_URL is undefined! Defaulting to production URL.");
+    BASE_URL = "https://wealth-ainew2.onrender.com/api"; 
 }
+
+console.log("Current API BASE_URL:", BASE_URL); // Debugging ke liye zaroori hai
 
 export const API = axios.create({
     baseURL: BASE_URL,
@@ -16,7 +19,7 @@ export const API = axios.create({
     }
 });
 
-// Exporting tokenStorage for AuthContext usage
+// Token management (Ye part sahi hai)
 export const tokenStorage = {
     getAccess: () => localStorage.getItem('token') || localStorage.getItem('accessToken'),
     getRefresh: () => localStorage.getItem('refreshToken'),
@@ -76,7 +79,7 @@ API.interceptors.response.use(
                 const refreshToken = tokenStorage.getRefresh();
                 if (!refreshToken) throw new Error("No refresh token");
 
-                // Yahan direct axios use kiya hai kyunki API instance loop mein fas sakta hai
+                // Note: BASE_URL yahan use ho raha hai
                 const res = await axios.post(`${BASE_URL}/users/refresh-token`, { refreshToken });
                 const newAccessToken = res.data?.accessToken || res.data?.token;
 
