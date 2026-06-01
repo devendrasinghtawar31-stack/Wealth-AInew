@@ -9,18 +9,15 @@ export const API = axios.create({
 });
 
 export const tokenStorage = {
-    getAccess: () => localStorage.getItem('token') || localStorage.getItem('accessToken'),
+    getAccess: () => localStorage.getItem('token'), // Sirf 'token' use karo
     getRefresh: () => localStorage.getItem('refreshToken'),
     setAccess: (token) => {
-        localStorage.setItem('token', token);
-        // localStorage.setItem('accessToken', token);
-        console.log("DEBUG: Token saved to storage:", token);
+        localStorage.setItem('token', token); // Hamesha 'token' key update karo
+        console.log("DEBUG: New Token saved:", token);
     },
-    // YE LINE ADD KI HAI:
     setRefresh: (token) => localStorage.setItem('refreshToken', token),
     clearAuth: () => {
         localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
     }
 };
@@ -39,8 +36,8 @@ const processQueue = (error, token = null) => {
 // Request Interceptor: Her request mein header chipka do
 API.interceptors.request.use(
     (config) => {
-        if (config.url === '/users/login' || config.url === '/users/register') {
-        return config; // Login request pe token mat dhoondo
+     if (config.url.includes('/login') || config.url.includes('/register')) {
+        return config;
     }
         const token = tokenStorage.getAccess();
         console.log("DEBUG: Interceptor calling...", config.url);
@@ -82,8 +79,10 @@ API.interceptors.response.use(
             const refreshToken = tokenStorage.getRefresh();
             if (!refreshToken) throw new Error("No refresh token");
 
-            // Yahan 'axios' use kiya hai taaki 'API' interceptor loop mein na phase
-            const res = await axios.post(`${BASE_URL}/users/refresh-token`, { refreshToken });
+           
+console.log("Sending Refresh Token:", refreshToken);
+const res = await axios.post('/api/users/refresh-token', { refreshToken });
+console.log("New Token Received from Server:", res.data); // YE DEKHO KYA AA RAHA HAI
             const newAccessToken = res.data?.accessToken || res.data?.token;
 
             tokenStorage.setAccess(newAccessToken);

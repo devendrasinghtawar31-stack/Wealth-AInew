@@ -11,58 +11,49 @@ import API from "../../config/api";
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, logoutUser } = useAuth();
+
+  // --- HOOKS HAMESHA TOP LEVEL PE HONE CHAHIYE ---
+  const [pageLoading, setPageLoading] = useState(true);
+  const [showSpinWheel, setShowSpinWheel] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [walletCoins, setWalletCoins] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("appTheme") !== "light");
   
+  const [dashboardMetrics, setDashboardMetrics] = useState({
+    userBanks: [],
+    isPremium: user?.isPremium || false,
+    lastSpunAt: null
+  });
+
+  // --- LOADING CONDITIONS ---
   if (authLoading) {
     return (
-      <div style={{ 
-        minHeight: "100vh", 
-        display: "flex", 
-        justifyContent: "center", 
-        alignItems: "center", 
-        background: theme.colors.meshGradient,
-        color: "#fff" 
-      }}>
+      <div style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: theme.colors.meshGradient, color: "#fff" }}>
         Authenticating Session...
       </div>
     );
   }
 
-  const [pageLoading, setPageLoading] = useState(true);
-  const [showSpinWheel, setShowSpinWheel] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [walletCoins, setWalletCoins] = useState(0);
-  const [dashboardMetrics, setDashboardMetrics] = useState({
-    userBanks: [],
-    isPremium: user?.isPremium || false,
-    lastSpunAt:null
-  });
-// 1. Pata karo ki abhi konsi theme chal rahi hai
-const [isDarkMode, setIsDarkMode] = useState(() => {
-  return localStorage.getItem("appTheme") !== "light";
-});
+  // --- THEME TOGGLE ---
+  const toggleTheme = () => {
+    const newMode = isDarkMode ? "light" : "dark";
+    localStorage.setItem("appTheme", newMode);
+    window.location.reload(); 
+  };
 
-// 2. Button dabne par ye function chalega
-const toggleTheme = () => {
-  // Naya mode kya hoga wo decide karo
-  const newMode = isDarkMode ? "light" : "dark";
-  
-  // Naye mode ko local storage me save kar do
-  localStorage.setItem("appTheme", newMode);
-  
-  // Page ko ek turant chota sa reload de do, taaki theme.js naye rang utha le
-  window.location.reload(); 
-};
-
-useEffect(() => {
+  // --- DATA FETCHING ---
+  useEffect(() => {
     const verifyUserOnboardingStatus = async () => {
       try {
-        // Sirf API.get use karo, header ki tension mat lo, interceptor sambhal lega
         const response = await API.get('/users/profile'); 
         const resData = response.data;
 
         if (resData && resData.success) {
           const banksArray = resData.user?.associatedBanks || [];
-          if (banksArray.length === 0) return navigate("/bank-onboarding");
+          if (banksArray.length === 0) {
+            navigate("/bank-onboarding");
+            return;
+          }
 
           setWalletCoins(resData.user?.walletCoins || 0);
           setDashboardMetrics({
@@ -74,21 +65,18 @@ useEffect(() => {
       } catch (error) {
         console.error("Dashboard error:", error);
         if (error.response?.status === 401) {
-            logoutUser(); // Token expire ho gaya toh force logout
+          logoutUser();
         }
       } finally {
         setPageLoading(false);
       }
     };
     verifyUserOnboardingStatus();
-  }, [navigate]); // navigate stable hai, koi dikkat nahi
+  }, [navigate, logoutUser]); // Dependencies optimized
 
   const handleLogout = () => {
     if (window.confirm("Bhai, kya aap sach me logout karna chahte hain?")) {
       logoutUser();
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("token");
-      navigate("/login");
     }
   };
   
