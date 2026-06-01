@@ -2,6 +2,7 @@ import { useState } from "react";
 import { theme } from "../../theme";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext"; // Global Context Bridge Connect Kiya
+import API from "../../config/api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,38 +24,31 @@ const Login = () => {
   };
 
   //  Converted to async function for handling real-time network latency
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-        const response = await fetch('http://localhost:3000/api/users/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              identifier: formData.identifier.trim(),// Frontend state placeholder text variable
-                password: formData.password
-            })
+        // Purana 'fetch' hata diya, ab ye use karo:
+        const response = await API.post('/users/login', {
+            identifier: formData.identifier.trim(),
+            password: formData.password
         });
 
-        const resData = await response.json();
+        // API.js response handle kar legi, tum seedha response.data access karo
+        const resData = response.data; 
 
-        if (response.ok && resData.success) {
-            // Save tokens cleanly inside window nodes
-            localStorage.setItem('accessToken', resData.token);
-            localStorage.setItem('token', resData.token);
+        if (resData.success) {
+            tokenStorage.setAccess(resData.token);
             localStorage.setItem('refreshToken', resData.refreshToken);
             
-            alert(` Welcome back, ${resData.name || 'User'}!`);
+            alert(`Welcome back, ${resData.name || 'User'}!`);
             window.location.href = '/dashboard';
-        } else {
-            //Server ka actual message user ko dikhao na ki generic network crash!
-            setError(resData.message || "Bhai, Credentials galat hain, dubara check karo!");
         }
     } catch (err) {
-        console.error("Login Interface Crash Trace:", err);
-        setError(" Secure login gateway server link unreachable!");
+        // Agar error aaya, toh error message handle karo
+        setError(err.response?.data?.message || "Login failed!");
     } finally {
         setLoading(false);
     }

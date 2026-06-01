@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../theme'; 
+import API from '../../config/api';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -25,68 +26,47 @@ const Register = () => {
     };
 
     //  FORM SUBMIT HANDLER (Connected with Backend Network Layer)
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-        const { name, email, phone, notificationMethod } = formData;
+    const { name, email, phone, notificationMethod } = formData;
+    const formattedPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
 
-        // Validation Checkpost
-        if (!name || !email || !phone) {
-            setError('Name , Email , & Phone Number All Details Has to be filled!');
-            setLoading(false);
-            return;
-        }
+    try {
+        // 'fetch' ki jagah 'API.post' use karo
+        const response = await API.post('/users/send-otp', {
+            name,
+            email,
+            phone: formattedPhone,
+            flow: 'register',
+            method: notificationMethod
+        });
 
-        try {
-            console.log(" Dispatching user payload to secure verification engine...", formData);
+        // Ab response.data se data nikalo
+        const resData = response.data;
 
-            const formattedPhone = phone.startsWith('+91')? phone: `+91${phone}`
-            //  THE CONNECTIVITY BRIDGE: Real network trigger points to Port 3000
-            const response = await fetch('http://localhost:3000/api/users/send-otp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name,
-                    email,
-                    phone:formattedPhone,
-                  flow: 'register',
-                    method: notificationMethod // This maps safely to activeMethod on backend now!
-                })
-
+        if (resData.success) {
+            alert(resData.message || "Verification code sent!");
+            navigate('/verify-otp', {
+                state: {
+                    flow: 'register',
+                    name: name.trim(),
+                    email: email.toLowerCase().trim(),
+                    phone: formattedPhone,
+                    identity: notificationMethod === 'email' ? email.toLowerCase().trim() : formattedPhone
+                }
             });
-
-            const resData = await response.json();
-
-            if (response.ok && resData.success) {
-                //  Dynamic success feedback modal alert
-                alert(resData.message || " Verification code sent successfully!");
-
-                // Transitioning safely to validation controller view
-                navigate('/verify-otp', {
-                    state: {
-                        flow: 'register',
-                        name: name.trim(),
-                        email: email.toLowerCase().trim(), //  Pass both data keys safely together
-                        phone: formattedPhone,
-                        identity: notificationMethod === 'email' ? email.toLowerCase().trim() : formattedPhone
-                    }
-                });
-            } else {
-               const backendErrorMessage = resData.message || resData.error || 'Bhai, OTP pipeline send block ho gayi!';
-                setError(backendErrorMessage);
-            }
-
-        } catch (err) {
-            console.error("Network Transmission Crash:", err);
-            setError(' Network Error: Secure backend link unreachable!');
-        } finally {
-            setLoading(false);
         }
-    };
+    } catch (err) {
+        console.error("Network Error:", err);
+        // Error ko backend ke message se dikhao
+        setError(err.response?.data?.message || 'Network Error: Secure backend link unreachable!');
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div style={{ 

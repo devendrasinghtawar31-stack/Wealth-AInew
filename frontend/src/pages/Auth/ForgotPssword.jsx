@@ -42,17 +42,11 @@ const handleSubmit = async (e) => {
 
     try {
         // Explicitly headers pass karo taaki backend ko body mil sake
-        const response = await API.post('/users/forgotpassword', 
-            { 
-                identity: identifier, 
-                method: notificationMethod 
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+      // Clean version
+const response = await API.post('/users/forgotpassword', { 
+    identity: identifier, 
+    method: notificationMethod 
+});
 
         if (response.data?.success) {
             alert("OTP sent successfully!");
