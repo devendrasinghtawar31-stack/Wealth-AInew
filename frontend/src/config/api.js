@@ -1,15 +1,10 @@
 import axios from 'axios';
 
-// 1. Environment Variable check
-let BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Kyunki ab sab ek hi domain pe hai, hum seedha relative path '/api' use karenge.
+// Isse tumhe kabhi koi 'VITE_API_BASE_URL' ki tension nahi hogi.
+const BASE_URL = "/api"; 
 
-// 2. Agar variable nahi mila, toh fallback URL use karo (yahan tumhara actual production backend URL daalo)
-if (!BASE_URL) {
-    console.warn("VITE_API_BASE_URL is undefined! Defaulting to production URL.");
-    BASE_URL = "https://wealth-ainew2.onrender.com/api"; 
-}
-
-console.log("Current API BASE_URL:", BASE_URL); // Debugging ke liye zaroori hai
+console.log("Current API BASE_URL:", BASE_URL);
 
 export const API = axios.create({
     baseURL: BASE_URL,
