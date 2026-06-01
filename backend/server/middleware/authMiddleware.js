@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import asyncHandler from 'express-async-handler'
 import User from '../models/UserModel.js'
 import ErrorResponse from '../../utils/errorResponse.js'
+import {API , tokenStorage }  from '../../../frontend/src/config/api.js'
 
 
 const protect = asyncHandler(async (req, res, next) => {

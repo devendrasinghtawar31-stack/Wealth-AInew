@@ -65,3 +65,6 @@ API.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export { API, tokenStorage };
+export default API;
