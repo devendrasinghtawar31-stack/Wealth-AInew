@@ -31,14 +31,18 @@ const fetchUser = async () => {
         fetchUser();
     }, []);
 
-   const loginUser = async (identifier, password) => {
+ const loginUser = async (identifier, password) => {
     const res = await API.post('/users/login', { identifier, password });
-    console.log("Response aaya:", res.data); // YE CHECK KAR
+    
+    // Yahan check kar: kya response mein `res.data.user` hai ya sirf `res.data`?
+    console.log("Full Response:", res.data); 
+    
     const { accessToken, refreshToken, user } = res.data;
     tokenStorage.setAccess(accessToken);
     tokenStorage.setRefresh(refreshToken);
-    setUser(user); // Agar ye line chalne ke baad bhi kuch nahi hua...
-    console.log("User state set ho gayi"); 
+    
+    // YE LINE ZAROORI HAI: agar user undefined aa raha hai, to res.data daal
+    setUser(user || res.data); 
     return res;
 };
 
