@@ -108,22 +108,19 @@ app.use("/api/crypto", cryptoRoutes)
 
 
 
-// Static files (Dist folder)
-const distPath = path.resolve(__dirname, '../../frontend/dist');
+/// Root directory se frontend/dist ka path
+const distPath = path.resolve('frontend', 'dist');
+
 app.use(express.static(distPath));
 
-// API routes ko handle karne ke baad, baki sabhi requests ko index.html par bhejo
-// Ye regex ya complex routes se behtar aur reliable hai
-app.get('*', (req, res) => {
-    // Agar request '/api' se shuru nahi ho rahi, tabhi index.html bhejo
+// Server.js mein ye route update karo
+app.get(/(.*)/, (req, res) => {
     if (!req.path.startsWith('/api')) {
         res.sendFile(path.join(distPath, 'index.html'));
     } else {
-        // Agar API route hai aur nahi mila, toh 404 bhejo
         res.status(404).json({ message: "API route not found" });
     }
 });
-
 
 
 app.use(errorHandler)
