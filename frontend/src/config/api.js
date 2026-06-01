@@ -39,7 +39,15 @@ const processQueue = (error, token = null) => {
 API.interceptors.request.use(
     (config) => {
         const token = tokenStorage.getAccess();
-        if (token) config.headers.Authorization = `Bearer ${token}`;
+        console.log("DEBUG: Interceptor calling...", config.url);
+        console.log("DEBUG: Token found:", token); // YE LINE DEKHO
+        
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log("DEBUG: Header set!");
+        } else {
+            console.log("DEBUG: NO TOKEN FOUND!");
+        }
         return config;
     },
     (error) => Promise.reject(error)
@@ -79,12 +87,13 @@ API.interceptors.response.use(
             
             processQueue(null, newAccessToken);
             return API(originalRequest);
-        } catch (refreshError) {
-            processQueue(refreshError, null);
-            tokenStorage.clearAuth();
-            window.location.href = '/login';
-            return Promise.reject(refreshError);
-        } finally {
+      } catch (refreshError) {
+    console.log("REFRESH FAILED:", refreshError.response?.data || refreshError.message);
+    processQueue(refreshError, null);
+    tokenStorage.clearAuth();
+    // window.location.href = '/login'; // <--- ISKO COMMENT KARKE CHECK KARO
+    return Promise.reject(refreshError);
+} finally {
             isRefreshing = false;
         }
     }
