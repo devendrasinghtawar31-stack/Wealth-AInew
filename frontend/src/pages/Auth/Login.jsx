@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { loginUser, user } = useAuth(); // Context se 'user' state bhi le li
+  const { loginUser, user , loading } = useAuth(); // Context se 'user' state bhi le li
 
   const [formData, setFormData] = useState({
     identifier: "",
@@ -17,12 +17,12 @@ const Login = () => {
 
   // 🚀 FIX: Jab user state update ho jaye, tabhi navigate karo.
   // Isse form submission ke beech mein koi interruption nahi aayega.
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard', { replace: true });
+ useEffect(() => {
+    // Agar user logged in hai, to wapas login page mat dikhao
+    if (!loading && user) {
+        navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
-
+}, [user, loading, navigate]);
   const handleChange = (e) => {
     setFormData({
       ...formData,

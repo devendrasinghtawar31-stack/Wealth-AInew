@@ -36,12 +36,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     document.body.className = isDarkMode ? "dark-theme" : "light-theme";
+    localStorage.setItem("appTheme", isDarkMode ? "dark" : "light");
 }, [isDarkMode]);
 
   // --- THEME TOGGLE ---
   const toggleTheme = () => {
-    const newMode = isDarkMode ? "light" : "dark";
-    localStorage.setItem("appTheme", newMode);
+    // const newMode = isDarkMode ? "light" : "dark";
+    // localStorage.setItem("appTheme", newMode);
    setIsDarkMode(!isDarkMode); 
   };
 
