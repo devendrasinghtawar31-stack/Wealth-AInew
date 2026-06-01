@@ -7,33 +7,35 @@ import ErrorResponse from '../../utils/errorResponse.js'
 const protect = asyncHandler(async (req, res, next) => {
     let token;
 
-    // Check for Authorization header (case-insensitive check is safer)
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.toLowerCase().startsWith('bearer')) {
-        try {
-            // Safe split
-            token = authHeader.split(' ')[1];
 
-            // Verify
+    // Check header
+    if (authHeader && authHeader.startsWith('Bearer')) {
+        try {
+            token = authHeader.split(' ')[1];
+            
+            // JWT Verify
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // User fetch
+            // Fetch User
             const user = await User.findById(decoded.id).select('-password');
             
             if (!user) {
-                return next(new ErrorResponse('User not found with this token', 401));
+                return next(new ErrorResponse('User not found', 401));
             }
 
             req.user = user;
-            next();
+            return next(); // Return zaroori hai yahan!
         } catch (error) {
+            // Agar token expired hai, toh yahan 401 jayega
             console.error("JWT Verification Error:", error.message);
             return next(new ErrorResponse('Token invalid or expired', 401));
         }
     }
 
+    // Agar token hai hi nahi header mein
     if (!token) {
-        return next(new ErrorResponse('No token provided, access denied', 401));
+        return next(new ErrorResponse('Not authorized, no token', 401));
     }
 });
 

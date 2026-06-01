@@ -10,42 +10,49 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const fetchUser = async () => {
             const token = tokenStorage.getAccess();
-            if (token) {
-                try {
-                    // Token header mein interceptor khud add kar dega
-                    const { data } = await API.get('/users/profile');
-                    setUser(data.user);
-                } catch (error) {
-                    console.error("Auth session expired, logging out...");
-                    logoutUser();
-                }
+            
+            if (!token) {
+                setLoading(false);
+                return;
             }
-            setLoading(false);
+
+            try {
+                // Interceptor automatically token header mein add kar dega
+                const { data } = await API.get('/users/profile');
+                if (data.success) {
+                    setUser(data.user);
+                }
+            } catch (error) {
+                console.error("Auth session expired or invalid, cleaning up...");
+                tokenStorage.clearAuth();
+                setUser(null);
+            } finally {
+                setLoading(false); // Ye line crucial hai, white screen hatane ke liye
+            }
         };
         fetchUser();
     }, []);
 
-// AuthContext.js
-const loginUser = async (identifier, password) => {
-    try {
-        const res = await API.post('/users/login', { identifier, password });
-        
-        // Log karke dekho response kya aa raha hai
-        console.log("Full Login Response:", res.data);
+    // Login Function
+    const loginUser = async (identifier, password) => {
+        try {
+            const res = await API.post('/users/login', { identifier, password });
+            
+            // Backend se token keys check karo
+            const token = res.data.accessToken || res.data.token;
+            const refreshToken = res.data.refreshToken;
 
-        if (res.data && (res.data.token || res.data.accessToken)) {
-            const token = res.data.token || res.data.accessToken;
-            tokenStorage.setAccess(token);
-            tokenStorage.setRefresh(res.data.refreshToken);
-            setUser(res.data.user);
-        } else {
-            throw new Error("Token missing in response");
+            if (token) {
+                tokenStorage.setAccess(token);
+                tokenStorage.setRefresh(refreshToken);
+                setUser(res.data.user);
+            }
+            return res;
+        } catch (error) {
+            console.error("Context Login Error:", error.response?.data || error.message);
+            throw error; 
         }
-    } catch (error) {
-        console.error("Context Login Error:", error.response?.data || error.message);
-        throw error; // Isse Login.jsx ka catch block chalega
-    }
-};
+    };
 
     const logoutUser = () => {
         tokenStorage.clearAuth();
