@@ -101,12 +101,12 @@ app.use('/api/banks', bankRoutes);
 //crypto routes
 app.use("/api/crypto", cryptoRoutes)
 
-// 1. Static folder ko serve karo (React build hone ke baad 'dist' folder banta hai)
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+// Purana code: path.join(__dirname, '../frontend/dist')
+// Naya code (ishe use karo):
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
-// Regex ka use karo taaki error na aaye
 app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+    res.sendFile(path.join(__dirname, '../../frontend/dist', 'index.html'));
 });
 
 
