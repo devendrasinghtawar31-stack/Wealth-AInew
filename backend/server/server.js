@@ -105,7 +105,7 @@ app.use("/api/crypto", cryptoRoutes)
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // 2. Koi bhi request jo API routes mein match nahi hui, use index.html par bhej do
-app.get('*', (req, res) => {
+app.get('/*', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
