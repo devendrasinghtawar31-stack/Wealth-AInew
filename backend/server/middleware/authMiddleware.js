@@ -4,37 +4,37 @@ import User from '../models/UserModel.js'
 import ErrorResponse from '../../utils/errorResponse.js'
 
 
-const protect = asyncHandler(async (req, res, next) => { 
-    
+const protect = asyncHandler(async (req, res, next) => {
     let token;
 
-    //checking if the header has authaorization or if it is starting with bearer token
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) { 
+    // Check for Authorization header (case-insensitive check is safer)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.toLowerCase().startsWith('bearer')) {
         try {
-            
-            //token nikalo (bearer alag token alag)
-            token = req.headers.authorization.split(' ')[1];
+            // Safe split
+            token = authHeader.split(' ')[1];
 
-            //token verification
-            // console.log("Secret Key Check:", process.env.JWT_SECRET)
-
+            // Verify
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            //user ka data nikalo
+            // User fetch
+            const user = await User.findById(decoded.id).select('-password');
+            
+            if (!user) {
+                return next(new ErrorResponse('User not found with this token', 401));
+            }
 
-            req.user = await User.findById(decoded.id).select('-password');
-
+            req.user = user;
             next();
         } catch (error) {
-            console.error(error);
-            return next(new ErrorResponse('bhai ,token galat hai, access denied',401))
-            
+            console.error("JWT Verification Error:", error.message);
+            return next(new ErrorResponse('Token invalid or expired', 401));
         }
     }
-    if (!token) {
-        return next(new ErrorResponse('Bhai, Token hi nahi hai, login toh karo!', 401));
-    }
 
-})
+    if (!token) {
+        return next(new ErrorResponse('No token provided, access denied', 401));
+    }
+});
 
 export default protect

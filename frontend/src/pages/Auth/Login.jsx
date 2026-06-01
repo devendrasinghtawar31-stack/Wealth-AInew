@@ -22,33 +22,19 @@ const Login = () => {
       [e.target.name]: e.target.value,
     });
   };
-
- 
+// Login.jsx
 const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-        const response = await API.post('/users/login', {
-            identifier: formData.identifier.trim(),
-            password: formData.password
-        });
-
-        const resData = response.data; 
-
-        if (resData.success) {
-            // 1. AuthContext ka use karo (Ye global state update karega)
-            loginUser(resData.token, resData.user); // Assume 'loginUser' token aur user data leta hai
-            
-            // 2. Interceptor handles the 'Authorization' header for future requests
-            // 3. Simple navigation
-            alert(`Welcome back, ${resData.name || 'User'}!`);
-            navigate('/dashboard'); 
-        }
+        // Sirf context ka function call karo
+        await loginUser(formData.identifier, formData.password);
+        navigate('/dashboard'); // Success par navigate
     } catch (err) {
-        // Backend ke specific error messages ko handle karo
-        setError(err.response?.data?.message || "Invalid credentials. Please check your data.");
+        // Error handling
+        setError(err.response?.data?.message || "Invalid credentials.");
     } finally {
         setLoading(false);
     }

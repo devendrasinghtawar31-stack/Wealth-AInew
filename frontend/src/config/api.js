@@ -13,7 +13,8 @@ export const tokenStorage = {
     getRefresh: () => localStorage.getItem('refreshToken'),
     setAccess: (token) => {
         localStorage.setItem('token', token);
-        localStorage.setItem('accessToken', token);
+        // localStorage.setItem('accessToken', token);
+        console.log("DEBUG: Token saved to storage:", token);
     },
     // YE LINE ADD KI HAI:
     setRefresh: (token) => localStorage.setItem('refreshToken', token),
@@ -38,6 +39,9 @@ const processQueue = (error, token = null) => {
 // Request Interceptor: Her request mein header chipka do
 API.interceptors.request.use(
     (config) => {
+        if (config.url === '/users/login' || config.url === '/users/register') {
+        return config; // Login request pe token mat dhoondo
+    }
         const token = tokenStorage.getAccess();
         console.log("DEBUG: Interceptor calling...", config.url);
         console.log("DEBUG: Token found:", token); // YE LINE DEKHO

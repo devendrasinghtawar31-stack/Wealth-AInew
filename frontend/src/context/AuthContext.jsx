@@ -25,22 +25,27 @@ export const AuthProvider = ({ children }) => {
         fetchUser();
     }, []);
 
-    const loginUser = async (identifier, password) => {
-        try {
-            const res = await API.post('/users/login', { identifier, password });
+// AuthContext.js
+const loginUser = async (identifier, password) => {
+    try {
+        const res = await API.post('/users/login', { identifier, password });
+        
+        // Log karke dekho response kya aa raha hai
+        console.log("Full Login Response:", res.data);
 
-            if (res.data) {
-                // TOKEN STORAGE KA NAAYA API USE KARO
-                tokenStorage.setAccess(res.data.token);
-                tokenStorage.setRefresh(res.data.refreshToken); // Fixed: setRefresh ka istemal
-                
-                setUser(res.data.user || res.data); 
-                return res.data;
-            }
-        } catch (error) {
-            throw error;
+        if (res.data && (res.data.token || res.data.accessToken)) {
+            const token = res.data.token || res.data.accessToken;
+            tokenStorage.setAccess(token);
+            tokenStorage.setRefresh(res.data.refreshToken);
+            setUser(res.data.user);
+        } else {
+            throw new Error("Token missing in response");
         }
-    };
+    } catch (error) {
+        console.error("Context Login Error:", error.response?.data || error.message);
+        throw error; // Isse Login.jsx ka catch block chalega
+    }
+};
 
     const logoutUser = () => {
         tokenStorage.clearAuth();
