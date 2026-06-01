@@ -75,7 +75,8 @@ API.interceptors.response.use(
                 if (!refreshToken) throw new Error("No refresh token");
 
                 // Note: BASE_URL yahan use ho raha hai
-                const res = await axios.post(`${BASE_URL}/users/refresh-token`, { refreshToken });
+                // axios.post ki jagah API.post likho
+const res = await API.post('/users/refresh-token', { refreshToken });
                 const newAccessToken = res.data?.accessToken || res.data?.token;
 
                 if (newAccessToken) {
