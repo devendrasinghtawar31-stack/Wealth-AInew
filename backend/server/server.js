@@ -49,16 +49,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 
-setupSwagger(app);//swagger documentaion ko express ke sath connect kia
-
-
-app.use(cors({
-    origin: [process.env.FRONTEND_URL || "https://wealth-ainew.onrender.com", "http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
-}));
-
 //Middlewares
 //webhook signature verification ke liye raw body ka buffer bachana zarroori hai
 app.use(express.json({
@@ -71,8 +61,23 @@ app.use(express.json({
 
 app.use(express.urlencoded({ extended: true }));
 
+//morgan ko bola ki har request ka dta winston ke combined.log me bhj dena
+app.use(morgan("combined", {
+    stream: { write: (message) => logger.info(message.trim()) }
+}));
 
-//Routes(test)
+
+app.use(cors({
+    origin: [process.env.FRONTEND_URL || "https://wealth-ainew.onrender.com", "http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
+
+
+setupSwagger(app);//swagger documentaion ko express ke sath connect kia
+
+// //Routes(test)
 // app.get('/', (req, res) => {
 //     res.send("WealthAI Server Chal Raha Hai! 🚀");
 // });
@@ -101,19 +106,15 @@ app.use('/api/banks', bankRoutes);
 //crypto routes
 app.use("/api/crypto", cryptoRoutes)
 
-// Purana code: path.join(__dirname, '../frontend/dist')
-// Naya code (ishe use karo):
-app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
-app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../../frontend/dist', 'index.html'));
+
+const distPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(distPath));
+
+app.get('/*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
-
-//morgan ko bola ki har request ka dta winston ke combined.log me bhj dena
-app.use(morgan("combined", {
-    stream: { write: (message) => logger.info(message.trim()) }
-}));
 
 
 app.use(errorHandler)
