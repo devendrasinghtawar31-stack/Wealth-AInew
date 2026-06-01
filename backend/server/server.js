@@ -73,9 +73,9 @@ app.use(express.urlencoded({ extended: true }));
 
 
 //Routes(test)
-app.get('/', (req, res) => {
-    res.send("WealthAI Server Chal Raha Hai! 🚀");
-});
+// app.get('/', (req, res) => {
+//     res.send("WealthAI Server Chal Raha Hai! 🚀");
+// });
 
 //userroutes
 app.use('/api/users', UserRoutes);
