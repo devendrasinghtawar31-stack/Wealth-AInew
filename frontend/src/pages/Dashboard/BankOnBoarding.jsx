@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { theme } from "../../theme";
 import { useAuth } from "../../context/AuthContext"; 
+import API from "../../config/api";
 
 const BankOnboarding = () => {
     const navigate = useNavigate();
     const { user } = useAuth(); 
 
-    // 👑 ONBOARDING LOCAL COMPACT STATE
+    //  ONBOARDING LOCAL COMPACT STATE
     const [formData, setFormData] = useState({
         isPremium: user?.isPremium || false, 
         allBanks: [],             
@@ -18,101 +19,63 @@ const BankOnboarding = () => {
     });
 
     // Background session support update
-    useEffect(() => {
+   useEffect(() => {
         if (user) {
-            setFormData(prev => ({
-                ...prev,
-                isPremium: user.isPremium || false
-            }));
+            setFormData(prev => ({ ...prev, isPremium: user.isPremium || false }));
         }
     }, [user]);
 
-    //  GET LIVE VALIDATED BANKS FROM BACKEND SERVER
+    // 1. GET BANKS (API Instance Use)
     useEffect(() => {
         const fetchLiveBanks = async () => {
             try {
                 setFormData(prev => ({ ...prev, pageFetchLoading: true }));
+                const response = await API.get('/banks'); // Interceptor handles auth
                 
-                const savedToken = localStorage.getItem("accessToken") || localStorage.getItem("token") || ""; 
-                const cleanToken = savedToken.startsWith("Bearer ") ? savedToken.split(" ")[1] : savedToken;
-
-                const response = await fetch('http://localhost:3000/api/banks', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': cleanToken ? `Bearer ${cleanToken}` : '',
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) throw new Error("Server communication broken");
-                
-                const resData = await response.json();
-                if (resData && resData.success) {
-                    setFormData(prev => ({ 
-                        ...prev, 
-                        allBanks: resData.data || [], 
-                        pageFetchLoading: false 
-                    }));
+                if (response.data && response.data.success) {
+                    setFormData(prev => ({ ...prev, allBanks: response.data.data || [], pageFetchLoading: false }));
                 }
             } catch (error) {
-                console.warn("⚠️ Onboarding Fallback protocol activated:", error);
-                const emergencyUIMatrix = [
+                console.warn(" Onboarding Fallback protocol:", error);
+                setFormData(prev => ({ ...prev, allBanks: [
                     { id: 'SBIN', name: 'State Bank of India', logo: '🏦' },
                     { id: 'HDFC', name: 'HDFC Bank', logo: '🏦' },
                     { id: 'ICIC', name: 'ICICI Bank', logo: '🏦' },
                     { id: 'UTIB', name: 'Axis Bank', logo: '🏦' },
                     { id: 'KKBK', name: 'Kotak Mahindra Bank', logo: '🏦' }
-                ];
-                setFormData(prev => ({ 
-                    ...prev, 
-                    allBanks: emergencyUIMatrix,
-                    pageFetchLoading: false 
-                }));
+                ], pageFetchLoading: false }));
             }
         };
-
         fetchLiveBanks();
     }, []);
 
-    //  CLOUD DATA SYNCHRONIZATION DISPATCHER
+    // 2. SYNC BANKS (API Instance Use)
     useEffect(() => {
         const syncBanksWithBackend = async () => {
             try {
-                const savedToken = localStorage.getItem("accessToken") || localStorage.getItem("token") || ""; 
-                const cleanToken = savedToken.startsWith("Bearer ") ? savedToken.split(" ")[1] : savedToken;
-
-                const response = await fetch('http://localhost:3000/api/banks/sync', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': cleanToken ? `Bearer ${cleanToken}` : '',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({selectedBanks: formData.selectedBanks }) // Body parameters matched to your backend
+                const response = await API.post('/banks/sync', { 
+                    selectedBanks: formData.selectedBanks 
                 });
 
-                const syncRes = await response.json();
-                if (response.ok && syncRes.success) {
+                if (response.data && response.data.success) {
                     setFormData(prev => ({ ...prev, loadingState: 'success' }));
                 } else {
-                    alert(` Sync Failed: ${syncRes.message || 'Server rejected selection'}`);
+                    alert(`Sync Failed: ${response.data.message || 'Server rejected selection'}`);
                     setFormData(prev => ({ ...prev, loadingState: 'idle' }));
                 }
             } catch (error) {
                 console.error("Transmission Error:", error);
-                alert(" Network Error: Secure server link unreachable!");
+                alert("Network Error: Could not sync with server.");
                 setFormData(prev => ({ ...prev, loadingState: 'idle' }));
             }
         };
 
-        if (formData.loadingState === 'processing') {
-            syncBanksWithBackend();
-        }
+        if (formData.loadingState === 'processing') syncBanksWithBackend();
         
         if (formData.loadingState === 'success') {
             const timer = setTimeout(() => {
-                alert(` Accounts Linked Successfully!`);
-                //  DIRECT NAVIGATION GATEWAY TO THE REAL DASHBOARD
-                navigate('/dashboard'); 
+                alert(`Accounts Linked Successfully!`);
+                navigate('/dashboard');
             }, 1000);
             return () => clearTimeout(timer);
         }

@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import SpinWheelModal from "./SpinWheelModal";
 import PremiumModal from "../../hooks/PremiumModal";
 import Sidebar from "../../components/shared/Sidebar";
+import API from "../../config/api";
 
 
 const Dashboard = () => {
@@ -37,30 +38,13 @@ const toggleTheme = () => {
   window.location.reload(); 
 };
 
-  useEffect(() => {
+useEffect(() => {
     const verifyUserOnboardingStatus = async () => {
       try {
-        const savedToken =
-          localStorage.getItem("accessToken") ||
-          localStorage.getItem("token") ||
-          "";
-        const cleanToken = savedToken.startsWith("Bearer ")
-          ? savedToken.split(" ")[1]
-          : savedToken;
+        // Sirf API.get use karo, header ki tension mat lo, interceptor sambhal lega
+        const response = await API.get('/users/profile'); 
+        const resData = response.data;
 
-        const response = await fetch(
-          "http://localhost:3000/api/users/profile",
-          {
-            method: "GET",
-            headers: {
-              Authorization: cleanToken ? `Bearer ${cleanToken}` : "",
-              "Content-Type": "application/json",
-            },
-          },
-        );
-
-        const resData = await response.json();
-console.log("Backend se aane wala User Data:", resData.user)
         if (resData && resData.success) {
           const banksArray = resData.user?.associatedBanks || [];
           if (banksArray.length === 0) return navigate("/bank-onboarding");
@@ -71,22 +55,18 @@ console.log("Backend se aane wala User Data:", resData.user)
             isPremium: resData.user?.isPremium || false,
             lastSpunAt: resData.user?.spinReward?.lastSpunAt || null
           });
-
-          // Spin Wheel check: Logic fix
-          const lastSpunTime = resData.user?.spinReward?.lastSpunAt;
-          const lastSpunDate = lastSpunTime
-            ? new Date(lastSpunTime).toDateString()
-            : null;
-          const today = new Date().toDateString();
         }
       } catch (error) {
         console.error("Dashboard error:", error);
+        if (error.response?.status === 401) {
+            logoutUser(); // Token expire ho gaya toh force logout
+        }
       } finally {
         setPageLoading(false);
       }
     };
     verifyUserOnboardingStatus();
-  }, [navigate]);
+  }, [navigate]); // navigate stable hai, koi dikkat nahi
 
   const handleLogout = () => {
     if (window.confirm("Bhai, kya aap sach me logout karna chahte hain?")) {

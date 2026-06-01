@@ -23,32 +23,32 @@ const Login = () => {
     });
   };
 
-  //  Converted to async function for handling real-time network latency
+ 
 const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-        // Purana 'fetch' hata diya, ab ye use karo:
         const response = await API.post('/users/login', {
             identifier: formData.identifier.trim(),
             password: formData.password
         });
 
-        // API.js response handle kar legi, tum seedha response.data access karo
         const resData = response.data; 
 
         if (resData.success) {
-            tokenStorage.setAccess(resData.token);
-            localStorage.setItem('refreshToken', resData.refreshToken);
+            // 1. AuthContext ka use karo (Ye global state update karega)
+            loginUser(resData.token, resData.user); // Assume 'loginUser' token aur user data leta hai
             
+            // 2. Interceptor handles the 'Authorization' header for future requests
+            // 3. Simple navigation
             alert(`Welcome back, ${resData.name || 'User'}!`);
-            window.location.href = '/dashboard';
+            navigate('/dashboard'); 
         }
     } catch (err) {
-        // Agar error aaya, toh error message handle karo
-        setError(err.response?.data?.message || "Login failed!");
+        // Backend ke specific error messages ko handle karo
+        setError(err.response?.data?.message || "Invalid credentials. Please check your data.");
     } finally {
         setLoading(false);
     }

@@ -30,65 +30,49 @@ const VerifyOTP = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+  
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-        // Password matching validation
-        if (formData.password !== formData.confirmPassword) {
-            setError("Passwords do not match!");
-            return;
+    if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match!");
+        return;
+    }
+
+    setLoading(true);
+    try {
+        const payload = {
+            otp: formData.otp.trim(),
+            password: formData.password,
+            flow,
+            identity
+        };
+
+        if (flow === 'register') {
+            payload.name = name;
+            payload.email = email;
+            payload.phone = phone;
         }
-        // Safety Check: Agar identity nahi hai, toh mat bhejo
-        if (!identity) {
-            setError("Session expired! Please go back and try again.");
-            return;
-        }
-
-        setLoading(true);
-
-        try {
-            // Identity ko email ya phone mein split karo
-            // const isEmail = identity.includes('@');
             
-            const payload = {
-                otp: formData.otp.trim(),
-                password: formData.password,
-                flow: flow,
-                // name: name || '',
-                identity: identity,
-            };
+        const response = await API.post('/users/verify-otp', payload);
 
-            // Register flow hai toh extra fields bhejo
-            if (flow === 'register') {
-                payload.name = name;
-                payload.email = email;
-                payload.phone = phone;
-            }
-            console.log("SENDING PAYLOAD TO BACKEND:", payload); // Console mein check karo ki identity mein kya ja raha hai
+        if (response.data?.success) {
+            const { token, refreshToken } = response.data;
             
-            const response = await API.post('/users/verify-otp', payload);
-
-            if (response.data && response.data.success) {
-                const { token, accessToken, refreshToken } = response.data;
-                const finalToken = token || accessToken;
-                
-                if (finalToken) {
-                    localStorage.setItem('token', finalToken);
-                    localStorage.setItem('accessToken', finalToken);
-                    localStorage.setItem('refreshToken', refreshToken || '');
-                }
-                
-                alert('Success! Welcome to Wealth AI.');
-                window.location.href = '/dashboard';
-            }
-        } catch (err) {
-            console.error("Verification Error:", err.response?.data);
-            setError(err.response?.data?.message || "OTP verification failed. Please try again.");
-        } finally {
-            setLoading(false);
+            // Set tokens
+            localStorage.setItem('token', token);
+            localStorage.setItem('refreshToken', refreshToken);
+            
+            alert('Success! Welcome to Wealth AI.');
+            navigate('/dashboard'); // Clean navigation
         }
-    };
+    } catch (err) {
+        setError(err.response?.data?.message || "Verification failed.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: theme.colors.meshGradient }}>
