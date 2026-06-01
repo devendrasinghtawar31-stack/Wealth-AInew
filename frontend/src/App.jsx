@@ -10,7 +10,7 @@ import FinancialDashboard from './pages/Dashboard/FinancialDashboard';
 import AiChatDashboard from './pages/AI/components/AiChatDashboard';
 import CryptoMarket from './pages/crypto/CryptoMarket';
 import { useAuth } from './context/AuthContext';
-
+import ProtectedRoute from './middleware/ProtectedRoute';
 
 
 const App = () => {
