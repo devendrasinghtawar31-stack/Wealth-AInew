@@ -34,11 +34,15 @@ const Dashboard = () => {
     );
   }
 
+  useEffect(() => {
+    document.body.className = isDarkMode ? "dark-theme" : "light-theme";
+}, [isDarkMode]);
+
   // --- THEME TOGGLE ---
   const toggleTheme = () => {
     const newMode = isDarkMode ? "light" : "dark";
     localStorage.setItem("appTheme", newMode);
-    window.location.reload(); 
+   setIsDarkMode(!isDarkMode); 
   };
 
   // --- DATA FETCHING ---
