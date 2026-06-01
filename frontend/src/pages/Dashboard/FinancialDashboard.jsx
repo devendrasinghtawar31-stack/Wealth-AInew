@@ -6,11 +6,14 @@ import AddTransactionForm from "./AddTransactionForm.jsx"; //  Manual data inser
 import SmsSimulator from "./SmsSimulator.jsx"; // Connected device simulator
 import API from "../../config/api.js"; //  AXIOS INTERCEPTOR UPGRADE: Silent refresh integration link
 import AnalyticsChart from "./AnalyticsChart.jsx";
+import { useOutletContext } from "react-router-dom";
+
 
 const FinancialDashboard = () => {
     const [stats, setStats] = useState({ totalIncome: 0, totalExpense: 0, netBalance: 0 });
     const [transactions, setTransactions] = useState([]);
     const [componentLoading, setComponentLoading] = useState(true);
+    const { isDarkMode } = useOutletContext();
     
     // 👑 THE GATEKEEPER STATE: Iski wajah se normal user ko terminal nahi dikhega
     const [showDevTools, setShowDevTools] = useState(false);

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import API, { tokenStorage } from "../config/api.js"; // API aur tokenStorage dono import kiye
+import API, { tokenStorage } from "../config/api.js";
 
 const AuthContext = createContext(null);
 
@@ -12,9 +12,11 @@ export const AuthProvider = ({ children }) => {
             const token = tokenStorage.getAccess();
             if (token) {
                 try {
+                    // Token header mein interceptor khud add kar dega
                     const { data } = await API.get('/users/profile');
-                    setUser(data.user); // Pura user object (spinReward ke saath)
+                    setUser(data.user);
                 } catch (error) {
+                    console.error("Auth session expired, logging out...");
                     logoutUser();
                 }
             }
@@ -23,18 +25,16 @@ export const AuthProvider = ({ children }) => {
         fetchUser();
     }, []);
 
-    const loginUser = async (email, password) => {
+    const loginUser = async (identifier, password) => {
         try {
-            const res = await API.post('/users/login', { identifier: email, password });
-            console.log("LOGIN FULL RESPONSE:", res.data);
+            const res = await API.post('/users/login', { identifier, password });
 
             if (res.data) {
-                // tokens set karo
+                // TOKEN STORAGE KA NAAYA API USE KARO
                 tokenStorage.setAccess(res.data.token);
-                localStorage.setItem('refreshToken', res.data.refreshToken);
+                tokenStorage.setRefresh(res.data.refreshToken); // Fixed: setRefresh ka istemal
                 
-                // Pura user profile state mein set karo
-                setUser(res.data); 
+                setUser(res.data.user || res.data); 
                 return res.data;
             }
         } catch (error) {
@@ -45,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     const logoutUser = () => {
         tokenStorage.clearAuth();
         setUser(null);
+        window.location.href = '/login'; // Redirect on logout
     };
 
     return (

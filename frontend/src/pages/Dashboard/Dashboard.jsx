@@ -10,7 +10,22 @@ import API from "../../config/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, logoutUser } = useAuth();
+  const { user, loading: authLoading, logoutUser } = useAuth();
+  
+  if (authLoading) {
+    return (
+      <div style={{ 
+        minHeight: "100vh", 
+        display: "flex", 
+        justifyContent: "center", 
+        alignItems: "center", 
+        background: theme.colors.meshGradient,
+        color: "#fff" 
+      }}>
+        Authenticating Session...
+      </div>
+    );
+  }
 
   const [pageLoading, setPageLoading] = useState(true);
   const [showSpinWheel, setShowSpinWheel] = useState(false);
