@@ -104,8 +104,8 @@ app.use("/api/crypto", cryptoRoutes)
 // 1. Static folder ko serve karo (React build hone ke baad 'dist' folder banta hai)
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-// 2. Koi bhi request jo API routes mein match nahi hui, use index.html par bhej do
-app.get('/*', (req, res) => {
+// Regex ka use karo taaki error na aaye
+app.get(/^\/(?!api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
 });
 
