@@ -42,16 +42,16 @@ const fetchUser = async () => {
 
 // AuthContext.jsx
 const logoutUser = () => {
-    // 1. Storage saaf karo (Yahan apni sahi keys likho)
-    localStorage.removeItem("accessToken"); 
-    localStorage.removeItem("refreshToken");
-    tokenStorage.clearAuth(); 
+    // 1. Sabse aggressive tareeke se cleanup
+    localStorage.clear();
+    sessionStorage.clear();
+    tokenStorage.clearAuth();
     
-    // 2. React State null karo
-    setUser(null); 
+    // 2. State reset
+    setUser(null);
     
-    // 3. Page reload zaroori hai taaki dashboard ka stale data flush ho jaye
-    window.location.href = '/login'; 
+    // 3. Force replace (History saaf ho jayegi, back button se dashboard nahi khulega)
+    window.location.replace('/login');
 };
     return (
         <AuthContext.Provider value={{ user, loading, loginUser, logoutUser }}>

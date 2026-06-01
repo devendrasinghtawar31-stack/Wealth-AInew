@@ -39,7 +39,7 @@ const processQueue = (error, token = null) => {
 // Request Interceptor
 API.interceptors.request.use((config) => {
     const token = tokenStorage.getAccess();
-    if (token) {
+    if (token && token !== "undefined") { // "undefined" string check zaroori hai
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
