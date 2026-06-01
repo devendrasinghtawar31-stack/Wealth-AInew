@@ -7,31 +7,31 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            const token = tokenStorage.getAccess();
-            
-            if (!token) {
-                setLoading(false);
-                return;
-            }
+// AuthContext.jsx mein fetchUser ko aise update karo
+useEffect(() => {
+    const fetchUser = async () => {
+        const token = tokenStorage.getAccess();
+        
+        if (!token) {
+            setLoading(false);
+            return;
+        }
 
-            try {
-                // Interceptor automatically token header mein add kar dega
-                const { data } = await API.get('/users/profile');
-                if (data.success) {
-                    setUser(data.user);
-                }
-            } catch (error) {
-                console.error("Auth session expired or invalid, cleaning up...");
-                tokenStorage.clearAuth();
-                setUser(null);
-            } finally {
-                setLoading(false); // Ye line crucial hai, white screen hatane ke liye
+        try {
+            const { data } = await API.get('/users/profile');
+            if (data.success) {
+                setUser(data.user);
             }
-        };
-        fetchUser();
-    }, []);
+        } catch (error) {
+            // Agar token expired hai, toh Interceptor automatically refresh kar dega
+            // Agar refresh bhi fail ho jaye, tabhi hum user ko null karenge
+            console.log("Auth check in progress or refresh needed...");
+        } finally {
+            setLoading(false); 
+        }
+    };
+    fetchUser();
+}, []);
 
     // Login Function
     const loginUser = async (identifier, password) => {
