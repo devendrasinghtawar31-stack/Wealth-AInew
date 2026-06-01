@@ -402,97 +402,94 @@ const sendOTP = asyncHandler(async (req, res, next) => {
 
 
 const forgotPassword = asyncHandler(async (req, res, next) => {
+ const { identity, method } = req.body;
+    
+    // Normalize identity (email to lowercase)
+    const normalizedIdentity = identity.toLowerCase().trim();
 
-    const { identity } = req.body; //user email /phone no.dalega
-
-    if (!identity) {
-        return next(new ErrorResponse("bhai email ya phone number batao", 400))
-    }
-
-let searchIdentity = identity;
-    if (!identity.includes('@') && !identity.startsWith('+91')) {
-        searchIdentity = `+91${identity}`; // +91 prefix add kiya
-    }
-
+    // User find karte waqt check karo
     const user = await User.findOne({
-        $or: [{ email: identity }, { phone: searchIdentity }]
+        $or: [
+            { email: normalizedIdentity }, 
+            { phone: identity.trim() } // Phone number trim rakho
+        ]
     });
 
     if (!user) {
-        return next(new ErrorResponse("is identity se koi user nahi mila", 404))
+        return next(new ErrorResponse("Is identity se koi user nahi mila", 404));
     }
 
-    const otp = Math.floor(100000 + Math.random() * 90000).toString();
-
-    //Purane forgot OTPs ko delete karo, aur naya OTP strictly central model me purpose: 'forgot' ke sath save karo
-    await OTP.deleteMany({ $or: [{ email: user.email }, { phone: user.phone }], purpose: 'forgot' });
-
+    // OTP save karte waqt 'email' aur 'phone' dono field bhejo, jo nahi hai wo null/undefined rehne do
+    await OTP.deleteMany({ purpose: 'forgot', $or: [{ email: user.email }, { phone: user.phone }] });
+    
     await OTP.create({
-        email: user.email,
-        phone: user.phone,
+        email: user.email || undefined,
+        phone: user.phone || undefined,
         otp,
-        purpose:'forgot'
-    })
+        purpose: 'forgot'
+    });
 
-    const message = `Your WealthAI password reset OTP :${otp}. valid for 5 min only.`;
+    const message = `Your WealthAI password reset OTP: ${otp}. Valid for 5 min only.`;
 
+    // 5. Method ke basis par OTP bhejna
     try {
-        
-        if ( identity.includes('@') || user.email === identity) {
+        if (method === 'email') {
             await sendEmail({
                 email: user.email,
                 subject: 'Password Reset OTP',
                 message
             });
-            
-        } else {
+        } else if (method === 'phone') {
             const formattedPhone = user.phone.startsWith('+91') ? user.phone : `+91${user.phone}`;
             await sendSMS({
                 phone: formattedPhone,
                 message
             });
-            
+        } else {
+            return next(new ErrorResponse("Invalid notification method", 400));
         }
+
         res.status(200).json({
-            success: true, 
-            message: "otp bhej dia gaya hai"
-        })
+            success: true,
+            message: "OTP bhej dia gaya hai"
+        });
 
     } catch (err) {
-     console.error("FORGOT SYSTEM CATCH ERROR: ", err);
-        await OTP.deleteMany({ $or: [{ email: user.email }, { phone: user.phone }], purpose: 'forgot' });
-        return next(new ErrorResponse("OTP nahi ja paya , try again", 500))
-        
-    };
-
+        console.error("FORGOT SYSTEM CATCH ERROR: ", err);
+        await OTP.deleteMany({ 
+            $or: [{ email: user.email }, { phone: user.phone }], 
+            purpose: 'forgot' 
+        });
+        return next(new ErrorResponse("OTP nahi ja paya, try again", 500));
+    }
 });
 
-// const resetPassword = asyncHandler(async (req, res, next) => { 
-//     const { identity, otp, password } = req.body;
+const resetPassword = asyncHandler(async (req, res, next) => { 
+    const { identity, otp, password } = req.body;
 
-//     const user = await User.findOne({
-//         $or: [{ email: identity }, { phone: identity }],
-//         resetPasswordOTP: otp,
-//         resetPasswordExpires: { $gt: Date.now() }
-//     });
+    const user = await User.findOne({
+        $or: [{ email: identity }, { phone: identity }],
+        resetPasswordOTP: otp,
+        resetPasswordExpires: { $gt: Date.now() }
+    });
 
-//     if (!user) { 
-//         return next(new ErrorResponse("otp galat hai ya expire ho gaya hai",400))
-//     }
+    if (!user) { 
+        return next(new ErrorResponse("otp galat hai ya expire ho gaya hai",400))
+    }
 
-//     //naya password set karo(pre save hook apne aap save kardega)
-//     user.password = password;
-//     user.resetPasswordOTP = undefined;
-//     user.resetPasswordExpires = undefined;
+    //naya password set karo(pre save hook apne aap save kardega)
+    user.password = password;
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordExpires = undefined;
 
-//     await user.save();
+    await user.save();
 
-//     res.status(200).json({
-//         success: true,
-//         message: "password successfully badal gaya hai, ab login karo"
-//     })
+    res.status(200).json({
+        success: true,
+        message: "password successfully badal gaya hai, ab login karo"
+    })
 
-// })
+})
 
 const updateSelectBanks = asyncHandler(async (req, res, next) => { 
     const { banks } = req.body;
@@ -526,96 +523,58 @@ const updateSelectBanks = asyncHandler(async (req, res, next) => {
 
 
 // @route   POST /api/users/verify-otp
+// @route   POST /api/users/verify-otp
 const verifyOTP = asyncHandler(async (req, res, next) => {
-    const { name, email, phone, otp, password, flow, currency } = req.body;
+    const { identity, otp, password, flow, name, email, phone, currency } = req.body;
     
-    // 1. Basic validation
-    if (!otp || !flow) {
-        return next(new ErrorResponse("OTP aur Flow missing hai!", 400));
+    if (!otp || !flow || !identity) {
+        return next(new ErrorResponse("OTP, Flow, aur Identity missing hai!", 400));
     }
 
-    // 2. Flow-based validation
-    if (flow === 'register') {
-        if (!name || !email || !phone) {
-            return next(new ErrorResponse("Registration ke liye Name, Email, aur Phone zaroori hain!", 400));
-        }
-    } else if (flow === 'forgot') {
-        if (!password) {
-            return next(new ErrorResponse("Naya password daalna zaroori hai!", 400));
-        }
-        // Forgot flow mein identity check karna zaroori hai
-        if (!email && !phone) {
-            return next(new ErrorResponse("Email ya Phone number missing hai!", 400));
-        }
-    } else {
-        return next(new ErrorResponse("Invalid flow!", 400));
-    }
+    const normalizedIdentity = identity.toString().toLowerCase().trim();
+    const isEmail = normalizedIdentity.includes('@');
 
-    // 3. Safer Identity Processing
-    const identifier = email || phone || "";
-    const isEmail = identifier.includes('@');
-    
-    // Clean phone number extraction
-    const rawNum = phone ? phone.toString().replace('+91', '').trim() : "";
-    const intNum = rawNum ? `+91${rawNum}` : "";
-    const cleanPhone = phone ? phone.toString().trim() : (!isEmail ? identifier.trim() : "");
-
-    const cleanOtpStr = otp.toString().trim();
-    const cleanOtpNum = Number(cleanOtpStr);
-
-    // 4. Robust OTP Query (Dono cases handle karega)
-    const otpQuery = { 
+    // 1. Fixed OTP Query: Sirf wahi field check karega jo identity mein hai
+    const otpQuery = {
         purpose: flow,
-        $or: [
-            ...(email ? [{ otp: cleanOtpStr, email: email.toLowerCase().trim() }, { otp: cleanOtpNum, email: email.toLowerCase().trim() }] : []),
-            ...(rawNum ? [{ otp: cleanOtpStr, phone: rawNum }, { otp: cleanOtpNum, phone: rawNum }] : []),
-            ...(intNum ? [{ otp: cleanOtpStr, phone: intNum }, { otp: cleanOtpNum, phone: intNum }] : []),
-            ...(cleanPhone && !isEmail ? [{ otp: cleanOtpStr, phone: cleanPhone }, { otp: cleanOtpNum, phone: cleanPhone }] : [])
-        ]
+        otp: otp.toString().trim()
     };
+    
+    if (isEmail) {
+        otpQuery.email = normalizedIdentity;
+    } else {
+        otpQuery.phone = normalizedIdentity;
+    }
 
     const otpRecord = await OTP.findOne(otpQuery);
-
     if (!otpRecord) {
         return next(new ErrorResponse("OTP Expired ya galat hai, phir se try karo!", 400));
     }
 
-    // 5. Logic Execution
+    // 2. Logic Execution
     if (flow === 'register') {
-        const userExists = await User.findOne({
-            $or: [{ email: email.toLowerCase().trim() }, { phone: rawNum }, { phone: intNum }]
-        });
-
-        if (userExists) {
-            return next(new ErrorResponse("Ye user pehle se registered hai!", 400));
+        if (!name || !email || !phone) {
+            return next(new ErrorResponse("Registration ke liye Name, Email, aur Phone zaroori hain!", 400));
         }
 
-        const user = await User.create({
-            name: name.trim(),
-            email: email.toLowerCase().trim(),
-            phone: intNum || cleanPhone,
-            password, 
-            currency: currency || 'INR'
+        const userExists = await User.findOne({
+            $or: [{ email: email.toLowerCase().trim() }, { phone: phone.trim() }]
         });
+        if (userExists) return next(new ErrorResponse("Ye user pehle se registered hai!", 400));
 
-        await OTP.deleteMany(otpQuery);
-        const { accessToken, refreshToken } = generateTokens(user._id);
-
-        return res.status(201).json({
-            success: true,
-            token: accessToken,
-            refreshToken,
-            message: "Registration successful!"
-        });
+        const user = await User.create({ name, email: email.toLowerCase().trim(), phone, password, currency });
+        await OTP.deleteMany({ email: email.toLowerCase().trim(), purpose: 'register' });
+        
+        return res.status(201).json({ success: true, message: "Registration successful!" });
 
     } else if (flow === 'forgot') {
+        if (!password) return next(new ErrorResponse("Naya password daalna zaroori hai!", 400));
+
         const user = await User.findOne({
-            $or: [...(email ? [{ email: email.toLowerCase().trim() }] : []), ...(rawNum ? [{ phone: rawNum }] : []), ...(intNum ? [{ phone: intNum }] : [])]
+            $or: [{ email: normalizedIdentity }, { phone: normalizedIdentity }]
         });
 
-        if (!user) {
-            return next(new ErrorResponse("User nahi mila, database check karo!", 404));
-        }
+        if (!user) return next(new ErrorResponse("User nahi mila!", 404));
 
         user.password = password;
         await user.save();

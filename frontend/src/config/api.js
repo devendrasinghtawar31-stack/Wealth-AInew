@@ -13,7 +13,7 @@ console.log("Current API BASE_URL:", BASE_URL); // Debugging ke liye zaroori hai
 
 export const API = axios.create({
     baseURL: BASE_URL,
-    timeout: 10000,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json',
     }

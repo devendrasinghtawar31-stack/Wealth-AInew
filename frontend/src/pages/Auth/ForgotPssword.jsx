@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { theme } from '../../theme';
 import API from '../../config/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    useEffect(() => {
+        if (user) {
+            console.log("DEBUG: ForgotPassword page pe user logged in hai:", user);
+            // Agar user logged in hai, toh shayad ye session conflict kar raha hai
+        }
+    }, [user]);
 
     // Single State Object for input and choice
     const [formData, setFormData] = useState({
@@ -32,19 +40,19 @@ const handleSubmit = async (e) => {
 
     const { identifier, notificationMethod } = formData;
 
-    if (!identifier) {
-        setError('Bhai, email ya phone number daalna zaroori hai!');
-        setLoading(false);
-        return;
-    }
-
     try {
-        // Path ko bilkul fix rakho, notificationMethod se route change mat karo
-        // Backend router mein path '/forgotpassword' hai.
-        const response = await API.post('/users/forgotpassword', {
-            identity: identifier,
-            method: notificationMethod // Backend ko method batao, lekin URL mat badlo
-        });
+        // Explicitly headers pass karo taaki backend ko body mil sake
+        const response = await API.post('/users/forgotpassword', 
+            { 
+                identity: identifier, 
+                method: notificationMethod 
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
 
         if (response.data?.success) {
             alert("OTP sent successfully!");
@@ -53,8 +61,9 @@ const handleSubmit = async (e) => {
             });
         }
     } catch (err) {
-        // Check karo ki error backend se aa raha hai ya network se
-        const serverMessage = err.response?.data?.message || 'Kuch toh jhol hai bhai!';
+        console.error("Full Error:", err);
+        // Backend se aaye error message ko priority do
+        const serverMessage = err.response?.data?.message || 'Server tak baat nahi pahunchi, network issue hai!';
         setError(serverMessage);
     } finally {
         setLoading(false);

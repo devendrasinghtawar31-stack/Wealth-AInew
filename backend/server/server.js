@@ -5,6 +5,8 @@ import dns from "dns";
 import colors from "colors"
 import morgan from "morgan";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 
 
@@ -40,13 +42,22 @@ cryptoController.fetchAndCacheCryptoPrices();
 setInterval(cryptoController.fetchAndCacheCryptoPrices, 30 * 1000);
 
 const PORT = process.env.PORT || 5000;
-
 const app = express();
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
 setupSwagger(app);//swagger documentaion ko express ke sath connect kia
 
 
-
-
+app.use(cors({
+    origin: [process.env.FRONTEND_URL || "https://wealth-ainew.onrender.com", "http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
 
 //Middlewares
 //webhook signature verification ke liye raw body ka buffer bachana zarroori hai
@@ -60,12 +71,6 @@ app.use(express.json({
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-    origin: [process.env.FRONTEND_URL || "https://wealth-ainew.onrender.com", "http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
-}));
 
 //Routes(test)
 app.get('/', (req, res) => {
@@ -94,12 +99,22 @@ app.use('/api/banks', bankRoutes);
 
 
 //crypto routes
-app.use("/api/crypto",cryptoRoutes)
+app.use("/api/crypto", cryptoRoutes)
+
+// 1. Static folder ko serve karo (React build hone ke baad 'dist' folder banta hai)
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// 2. Koi bhi request jo API routes mein match nahi hui, use index.html par bhej do
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+});
+
 
 //morgan ko bola ki har request ka dta winston ke combined.log me bhj dena
 app.use(morgan("combined", {
     stream: { write: (message) => logger.info(message.trim()) }
 }));
+
 
 app.use(errorHandler)
 

@@ -39,22 +39,34 @@ const VerifyOTP = () => {
             setError("Passwords do not match!");
             return;
         }
+        // Safety Check: Agar identity nahi hai, toh mat bhejo
+        if (!identity) {
+            setError("Session expired! Please go back and try again.");
+            return;
+        }
 
         setLoading(true);
 
         try {
             // Identity ko email ya phone mein split karo
-            const isEmail = identity.includes('@');
+            // const isEmail = identity.includes('@');
             
             const payload = {
                 otp: formData.otp.trim(),
                 password: formData.password,
                 flow: flow,
-                name: name || '',
-               email: email || '',
-               phone: phone || '',
+                // name: name || '',
+                identity: identity,
             };
 
+            // Register flow hai toh extra fields bhejo
+            if (flow === 'register') {
+                payload.name = name;
+                payload.email = email;
+                payload.phone = phone;
+            }
+            console.log("SENDING PAYLOAD TO BACKEND:", payload); // Console mein check karo ki identity mein kya ja raha hai
+            
             const response = await API.post('/users/verify-otp', payload);
 
             if (response.data && response.data.success) {
