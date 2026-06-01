@@ -31,14 +31,16 @@ const fetchUser = async () => {
         fetchUser();
     }, []);
 
-    const loginUser = async (identifier, password) => {
-        const res = await API.post('/users/login', { identifier, password });
-        const { accessToken, refreshToken, user } = res.data;
-        tokenStorage.setAccess(accessToken);
-        tokenStorage.setRefresh(refreshToken);
-        setUser(user);
-        return res;
-    };
+   const loginUser = async (identifier, password) => {
+    const res = await API.post('/users/login', { identifier, password });
+    console.log("Response aaya:", res.data); // YE CHECK KAR
+    const { accessToken, refreshToken, user } = res.data;
+    tokenStorage.setAccess(accessToken);
+    tokenStorage.setRefresh(refreshToken);
+    setUser(user); // Agar ye line chalne ke baad bhi kuch nahi hua...
+    console.log("User state set ho gayi"); 
+    return res;
+};
 
 // AuthContext.jsx
 const logoutUser = () => {

@@ -10,10 +10,12 @@ const Login = () => {
   const [error, setError] = useState("");
   const [localLoading, setLocalLoading] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
+    console.log("User state check:", user); // YE LOG BHI CHECK KAR
     if (user) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
-
+ }, [user, navigate]);
+  
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalLoading(true);
