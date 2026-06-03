@@ -1,95 +1,79 @@
 import crypto from 'crypto';
 
 const parseSMS = (smsText) => {
-
-    if (!smsText) { 
-        return {amount:0 , type:'pending', merchant:'Unkown', category: 'Other',title:'SMS Transaction' ,smsHash: ''}
+    if (!smsText) {
+        return { ignore: true };
     }
-    //lowercase mein badla taaki check karna aasan rahe
+
     const text = smsText.toLowerCase();
 
-    //default values set karna hai
+    // 1. Security Check: Bank SMS hai ya nahi?
+    const isBankSMS = /a\/c|acct|account|vpa|upi|card|debited|credited|balance|bal|txn/i.test(text);
+    if (!isBankSMS) {
+        console.log("--> Security block: Normal chat SMS!");
+        return { ignore: true };
+    }
 
+    // Default values
     let amount = 0;
     let type = 'pending';
     let merchant = 'Unknown';
     let category = 'Other';
-    let title = 'SMS Transaction'
+    let title = 'SMS Transaction';
 
-    //har sms ka 32-words ka hash 
-    const smsHash = crypto.createHash('md5').update(smsText.trim()).digest('hex');
-
-    //security check
-
-
-    const isBankSMS =
-        text.includes('a/c') ||
-        text.includes('acct') ||
-        text.includes('account') ||
-        text.includes('vpa') ||
-        text.includes('upi') ||
-        text.includes('card') ;
-    
-    if (!isBankSMS) { 
-        console.log("--> security block : fake ya normal chat SMS paksa gaya!")
-        return { amount: 0, type, merchant, category, title ,smsHash };
-    }
-
-    //amount nikalne ke liye regex(rs.ya INR ke baad ka number)
-
-    let cleanText = text;
-    if (text.includes('balance') || text.includes('bal')) {
-        // Ye string ko "balance" se do tukdo mein baant dega, aur hum pehla [0] wala tukda utha lenge
-        cleanText = text.split(/balance|bal/)[0];
-    }
-
+    // 2. Amount Extraction
+    let cleanText = text.includes('balance') || text.includes('bal') ? text.split(/balance|bal/)[0] : text;
     const amountRegex = /(?:rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/;
-    const amountMatch = cleanText.match(amountRegex)
-
+    const amountMatch = cleanText.match(amountRegex);
     if (amountMatch) {
-        //coma(,)hatake number mein convert
         amount = parseFloat(amountMatch[1].replace(/,/g, ''));
     }
 
-        //type check karna (credit ya debit)
+    // 3. Type Detection
+    if (text.includes('credited') || text.includes('received') || text.includes('deposited')) {
+        type = 'income';
+    } else if (text.includes('debited') || text.includes('spent') || text.includes('paid')) {
+        type = 'expense';
+    }
 
-        if (text.includes('credited') || text.includes('received') || text.includes('deposited')) {
-            type = 'income';
-        } else if (text.includes('debited') || text.includes('spent') || text.includes('paid')) {
-            type = 'expense';
-        }
-
-        //  Merchant(dukan/app) ka naam nikalna
-        if (text.includes('zomato') || text.includes('swiggy')) {
-            merchant = 'Food';
-        } else if (text.includes('uber') || text.includes('ola')) {
-            merchant = 'Travel'
-        }else if (text.includes('amazon') || text.includes('flipcart')) {
-            merchant = 'Shopping';
-        }else if (text.includes('netflix') || text.includes('spotify')) {
-            merchant = 'Subscription';
-        }else if (text.includes('blinkit') || text.includes('zepto')) {
-        merchant = 'Groceries Store'; category = 'Groceries';
+    // 4. Merchant & Category Mapping (Better Mapping)
+    if (text.includes('zomato') || text.includes('swiggy')) {
+        merchant = 'Food'; category = 'Food & Dining';
+    } else if (text.includes('uber') || text.includes('ola')) {
+        merchant = 'Travel'; category = 'Transportation';
+    } else if (text.includes('amazon') || text.includes('flipcart') || text.includes('myntra')) {
+        merchant = 'Shopping'; category = 'Shopping';
+    } else if (text.includes('netflix') || text.includes('spotify') || text.includes('prime')) {
+        merchant = 'Subscription'; category = 'Entertainment';
+    } else if (text.includes('blinkit') || text.includes('zepto') || text.includes('instamart')) {
+        merchant = 'Grocery Store'; category = 'Groceries';
     } else if (text.includes('salary') || text.includes('stipend')) {
-        merchant = 'Salary Source'; category = 'Salary';
-    } else if (text.includes('medical') || text.includes('pharmacy')) {
+        merchant = 'Employer'; category = 'Salary';
+    } else if (text.includes('medical') || text.includes('pharmacy') || text.includes('apollo')) {
         merchant = 'Medical Care'; category = 'Health';
     }
-        
 
+    // 5. Title Generation
     if (type === 'income') {
-        title = merchant !== 'Unknown' ? `Recieved from ${merchant}` : 'money recieved'
+        title = merchant !== 'Unknown' ? `Received from ${merchant}` : 'Money Received';
     } else if (type === 'expense') {
-        title = merchant !== 'Unknown' ? `Paid to ${merchant}` : 'money spent'
-     }
+        title = merchant !== 'Unknown' ? `Paid to ${merchant}` : 'Money Spent';
+    }
 
+    // Final Validation
+    if (amount === 0 || type === 'pending') {
+        return { ignore: true };
+    }
 
-    return {amount , type , merchant , category , title , smsHash}
-    
-}
-
-
-
+    return {
+        amount,
+        type,
+        merchant,
+        category, // Yeh ab sahi se pass hoga
+        title,
+        smsHash: crypto.createHash('md5').update(smsText.trim()).digest('hex'),
+        ignore: false
+    };
+};
 
 export default parseSMS;
-

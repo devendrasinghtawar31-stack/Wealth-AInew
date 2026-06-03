@@ -1,31 +1,39 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
-import { theme } from "../../theme";
+import { theme, darkColors, lightColors } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
 import SpinWheelModal from "./SpinWheelModal";
 import PremiumModal from "../../hooks/PremiumModal";
 import Sidebar from "../../components/shared/Sidebar";
 import API from "../../config/api";
 
-
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, logoutUser } = useAuth();
+  const { user, loading: authLoading, logoutUser: handleLogoutAction } = useAuth();
 
-  // --- HOOKS HAMESHA TOP LEVEL PE HONE CHAHIYE ---
   const [pageLoading, setPageLoading] = useState(true);
   const [showSpinWheel, setShowSpinWheel] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [walletCoins, setWalletCoins] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("appTheme") !== "light");
   
+  // Theme logic waisa hi hai bas state yahan hai
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("appTheme") !== "light");
+  const currentColors = isDarkMode ? darkColors : lightColors;
   const [dashboardMetrics, setDashboardMetrics] = useState({
     userBanks: [],
     isPremium: user?.isPremium || false,
     lastSpunAt: null
   });
 
-  // --- LOADING CONDITIONS ---
+  // --- THEME SYNC ---
+  useEffect(() => {
+    document.body.className = isDarkMode ? "dark-theme" : "light-theme";
+    localStorage.setItem("appTheme", isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  // --- LOADING CONDITION ---
   if (authLoading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: theme.colors.meshGradient, color: "#fff" }}>
@@ -34,58 +42,40 @@ const Dashboard = () => {
     );
   }
 
-  useEffect(() => {
-    document.body.className = isDarkMode ? "dark-theme" : "light-theme";
-    localStorage.setItem("appTheme", isDarkMode ? "dark" : "light");
-}, [isDarkMode]);
-
-  // --- THEME TOGGLE ---
-  const toggleTheme = () => {
-    // const newMode = isDarkMode ? "light" : "dark";
-    // localStorage.setItem("appTheme", newMode);
-   setIsDarkMode(!isDarkMode); 
-  };
-
   // --- DATA FETCHING ---
-  useEffect(() => {
-    const verifyUserOnboardingStatus = async () => {
-      try {
-        const response = await API.get('/users/profile'); 
-        const resData = response.data;
+// Dashboard.jsx - useEffect logic
+useEffect(() => {
+    // Agar Auth check ho gaya hai aur user nahi hai, toh login pe bhejo
+    if (!authLoading && !user) {
+      navigate('/login', {replace: true});
+        return;
+    }
 
-        if (resData && resData.success) {
-          const banksArray = resData.user?.associatedBanks || [];
-          if (banksArray.length === 0) {
+    // Agar user hai, toh metrics set karo
+    if (!authLoading && user) {
+        const banksArray = user.associatedBanks || [];
+        
+        if (banksArray.length === 0) {
             navigate("/bank-onboarding");
             return;
-          }
+        }
 
-          setWalletCoins(resData.user?.walletCoins || 0);
-          setDashboardMetrics({
+        setWalletCoins(user.walletCoins || 0);
+        setDashboardMetrics({
             userBanks: banksArray,
-            isPremium: resData.user?.isPremium || false,
-            lastSpunAt: resData.user?.spinReward?.lastSpunAt || null
-          });
-        }
-      } catch (error) {
-        console.error("Dashboard error:", error);
-        if (error.response?.status === 401) {
-          logoutUser();
-        }
-      } finally {
+            isPremium: user.isPremium || false,
+            lastSpunAt: user.spinReward?.lastSpunAt || null
+        });
         setPageLoading(false);
-      }
-    };
-    verifyUserOnboardingStatus();
-  }, [navigate, logoutUser]); // Dependencies optimized
+    }
+}, [authLoading, user, navigate]);
 
   const handleLogout = () => {
     if (window.confirm("Bhai, kya aap sach me logout karna chahte hain?")) {
-      logoutUser();
+     handleLogoutAction()
     }
   };
   
-
   if (pageLoading)
     return (
       <div
@@ -101,18 +91,18 @@ const Dashboard = () => {
         Loading...
       </div>
     );
-  
 
   return (
     <div
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: theme.colors.meshGradient,
-        color: theme.colors.textMain,
+        background: currentColors.meshGradient,
+        color: currentColors.textMain,
       }}
     >
-     <Sidebar setShowSpinWheel={setShowSpinWheel} />
+      <Sidebar setShowSpinWheel={setShowSpinWheel}
+      currentColors={currentColors}/>
       <div
         style={{
           flex: 1,
@@ -127,63 +117,37 @@ const Dashboard = () => {
             justifyContent: "space-between",
             alignItems: "center",
             padding: "20px 40px",
-            background: theme.colors.surface,
-            borderBottom: `1px solid ${theme.colors.border}`,
+            background: currentColors.surface,
+            borderBottom: `1px solid ${currentColors.border}`,
           }}
         >
-         
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          gap: '8px', 
-          marginBottom: '8px' 
-        }}>
-          <span style={{ 
-              fontSize: '28px', 
-              fontWeight: '700', 
-              color: '#FAFAF9', 
-              letterSpacing: '0.5px',
-              textShadow: '0 0 20px rgba(250, 255, 0, 0.4)' 
-          }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <span style={{ fontSize: '28px', fontWeight: '700', color: '#FAFAF9', letterSpacing: '0.5px', textShadow: '0 0 20px rgba(250, 255, 0, 0.4)' }}>
               Wealth
           </span>
-          
-          <span style={{ 
-              fontSize: '18px', 
-              fontWeight: 'bold', 
-              fontFamily: 'monospace', 
-              background: 'rgba(46, 196, 182, 0.15)', 
-              color: theme.colors.success, 
-              padding: '4px 10px', 
-              borderRadius: '6px', 
-              border: `1px solid rgba(46, 196, 182, 0.3)`,
-              letterSpacing: '0.5px'
-          }}>
+          <span style={{ fontSize: '18px', fontWeight: 'bold', fontFamily: 'monospace', background: 'rgba(46, 196, 182, 0.15)', color: theme.colors.success, padding: '4px 10px', borderRadius: '6px', border: `1px solid rgba(46, 196, 182, 0.3)`, letterSpacing: '0.5px' }}>
               AI
           </span>
         </div>
-          <button
-              onClick={toggleTheme}
-              style={{
-                background: "transparent",
-                border: `1px solid ${theme.colors.border}`,
+
+        {/* Theme Toggle Button */}
+        <button
+            onClick={toggleTheme}
+            style={{
+                background: isDarkMode ? darkColors.surface : lightColors.surface,
+                color: isDarkMode ? darkColors.textMain : lightColors.textMain,
+                border: `1px solid ${isDarkMode ? darkColors.border : lightColors.border}`,
                 padding: "8px 12px",
                 borderRadius: "8px",
                 cursor: "pointer",
-                fontSize: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.3s ease",
-                // Abhi ke liye text color white rakha hai
-                color: "#fff" 
-              }}
-              title="Toggle Theme"
-            >
-              {isDarkMode ? " 🔆 Light" : " 🌕 Dark"}
-            </button>
-
+              transition: "all 0.3s ease",
+              fontWeight: "100",
+                fontSize: "15px"
+            }}
+            title="Toggle Theme"
+        >
+            {isDarkMode ? "Orange🧡" : "Pink🩷"}
+        </button>
 
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
             {!dashboardMetrics.isPremium && (
@@ -203,40 +167,16 @@ const Dashboard = () => {
               </button>
             )}
             
-             {dashboardMetrics.isPremium && (
-    <div
-      style={{
-        background: "linear-gradient(135deg, rgba(229, 169, 59, 0.2), rgba(255, 215, 0, 0.2))",
-        border: "1px solid #FFD700",
-        padding: "10px 20px",
-        borderRadius: "8px",
-        fontWeight: "700",
-        color: "#FFD700", // Sunehra rang
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        boxShadow: "0 0 10px rgba(255, 215, 0, 0.1)",
-      }}
-    >
-      <span>ELITE MEMBER</span>
-    </div>
-  )}
+            {dashboardMetrics.isPremium && (
+              <div style={{ background: "linear-gradient(135deg, rgba(229, 169, 59, 0.2), rgba(255, 215, 0, 0.2))", border: "1px solid #FFD700", padding: "10px 20px", borderRadius: "8px", fontWeight: "700", color: "#FFD700", display: "flex", alignItems: "center", gap: "6px", boxShadow: "0 0 10px rgba(255, 215, 0, 0.1)" }}>
+                <span>ELITE MEMBER</span>
+              </div>
+            )}
 
-            <div
-              style={{
-                background: "rgba(250, 255, 0, 0.08)",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1px solid rgba(250, 255, 0, 0.3)",
-              }}
-            >
-              🪙 Wallet: ₹
-              {Number(parseFloat(walletCoins || 0).toFixed(2)).toLocaleString(
-                "en-IN",
-                { minimumFractionDigits: 2 },
-              )}{" "}
-              Coins
+            <div style={{ background: "rgba(250, 255, 0, 0.08)", padding: "8px 16px", borderRadius: "8px", border: "1px solid rgba(250, 255, 0, 0.3)" }}>
+              🪙 Wallet: ₹{Number(parseFloat(walletCoins || 0).toFixed(2)).toLocaleString("en-IN", { minimumFractionDigits: 2 })} Coins
             </div>
+            
             <button
               onClick={handleLogout}
               style={{
@@ -253,51 +193,20 @@ const Dashboard = () => {
           </div>
         </header>
 
-        <main
-          style={{
-            padding: "40px 20px",
-            maxWidth: "1200px",
-            margin: "0 auto",
-            width: "100%",
-          }}
-        >
-          <div
-            style={{
-              background: theme.colors.surface,
-              padding: "20px 30px",
-              borderRadius: "12px",
-              border: `1px solid ${theme.colors.border}`,
-              marginBottom: "20px",
-            }}
-          >
+        <main style={{ padding: "40px 20px", maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
+          <div style={{ background: currentColors.surface, padding: "20px 30px", borderRadius: "12px", border: `1px solid ${currentColors.border}`, marginBottom: "20px" }}>
             <h1>Welcome back, {user?.name || "Devendra"}! 👋</h1>
           </div>
           
-          <Outlet
-            context={{
-              dashboardMetrics,
-              walletCoins,
-              setWalletCoins,
-              setShowSpinWheel,
-              isDarkMode// <--- YE ADD KAR DIYA
-            }}
-          />
+          <Outlet context={{ dashboardMetrics, walletCoins, setWalletCoins, setShowSpinWheel, isDarkMode }} />
         </main>
       </div>
 
       {showSpinWheel && (
-        <SpinWheelModal
-          onClose={() => setShowSpinWheel(false)}
-          updateWalletCoins={setWalletCoins}
-            lastSpunAt={dashboardMetrics.lastSpunAt}
-        />
+        <SpinWheelModal onClose={() => setShowSpinWheel(false)} updateWalletCoins={setWalletCoins} lastSpunAt={dashboardMetrics.lastSpunAt} />
       )}
       {showPremiumModal && (
-        <PremiumModal
-          user={user || {}}
-          onClose={() => setShowPremiumModal(false)}
-          lastSpunAt={dashboardMetrics.lastSpunAt}
-        />
+        <PremiumModal user={user || {}} onClose={() => setShowPremiumModal(false)} lastSpunAt={dashboardMetrics.lastSpunAt} />
       )}
     </div>
   );

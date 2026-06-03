@@ -6,7 +6,7 @@ import API from "../../config/api";
 
 const BankOnboarding = () => {
     const navigate = useNavigate();
-    const { user } = useAuth(); 
+    const { user , refreshUser } = useAuth(); 
 
     //  ONBOARDING LOCAL COMPACT STATE
     const [formData, setFormData] = useState({
@@ -54,8 +54,10 @@ const BankOnboarding = () => {
         const syncBanksWithBackend = async () => {
             try {
                 const response = await API.post('/banks/sync', { 
+                    
                     selectedBanks: formData.selectedBanks 
                 });
+                console.log("--> API Response from Backend:", response.data);
 
                 if (response.data && response.data.success) {
                     setFormData(prev => ({ ...prev, loadingState: 'success' }));
@@ -73,8 +75,9 @@ const BankOnboarding = () => {
         if (formData.loadingState === 'processing') syncBanksWithBackend();
         
         if (formData.loadingState === 'success') {
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
                 alert(`Accounts Linked Successfully!`);
+                await refreshUser();
                 navigate('/dashboard');
             }, 1000);
             return () => clearTimeout(timer);

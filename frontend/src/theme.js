@@ -1,7 +1,7 @@
 // theme.js
 
 // 
-const darkColors = {
+ export const darkColors = {
     primary: '#FF6B35',
     success: '#2EC4B6',
     danger: '#FF5630',
@@ -13,21 +13,16 @@ const darkColors = {
     meshGradient: 'radial-gradient(circle at 0% 0%, rgba(255, 107, 53, 0.15) 0%, transparent 35%), radial-gradient(circle at 100% 100%, rgba(46, 196, 182, 0.1) 0%, transparent 40%), #12161A'
 };
 
-const lightColors = {
-    primary: '#FF6B35',       
-    success: '#2EC4B6',       
-    danger: '#FF5630',        
-    
-    
-    background: '#F0F4F8',    
-    surface: '#E1E8F0',      
-    
-    textMain: '#1C232B',      
-    textMuted: '#5A6A77',     
-    border: '#CFD8E3',        
-    
-    // Gradient me bhi thoda soft blue aur orange ka touch
-    meshGradient: 'radial-gradient(circle at 0% 0%, rgba(255, 107, 53, 0.08) 0%, transparent 35%), radial-gradient(circle at 100% 100%, rgba(46, 196, 182, 0.05) 0%, transparent 40%), #F0F4F8'
+export const lightColors = {
+primary: '#FF007F',        // Neon Pink
+    success: '#39FF14',        // Neon Green
+    danger: '#FF1493',         // Deep Pink
+    background: '#0D0D0D',     // Pitch Black
+    surface: '#1A1A1A',        // Dark Grey
+    textMain: '#FFFFFF',       // Crisp White
+    textMuted: '#A0A0A0',      // Light Grey
+    border: '#333333',         // Darker border
+    meshGradient: 'radial-gradient(circle at 0% 0%, rgba(255, 0, 127, 0.15) 0%, transparent 40%), #0D0D0D'
 };
 
 //  check karo ki user ne pehle se kya select kiya hai (LocalStorage se)
@@ -38,8 +33,7 @@ const activeColors = isDark ? darkColors : lightColors;
 
 //  vahi purana 'theme' object jise baaki files use kar rahi hain
 export const theme = {
-    colors: activeColors, // Isme automatic sahi wala theme chale jayenge
-    transitions: {
-        smooth: 'all 0.3s ease-in-out'
-    }
+    // Ye dynamic nahi hai, sirf default initial state ke liye hai
+    colors: localStorage.getItem("appTheme") !== "light" ? darkColors : lightColors,
+    transitions: { smooth: 'all 0.3s ease-in-out' }
 };

@@ -94,7 +94,7 @@ const syncUserBanks = asyncHandler(async (req, res, next) => {
     if (!updatedUser) {
         return next(new ErrorResponse("Bhai, user nahi mila!", 404));
     }
-
+console.log("--> DB Update Success. New Banks:", updatedUser.associatedBanks);
     res.status(200).json({
         success: true,
         message: `🎉 Successfully mapped ${selectedBanks.length} bank nodes to your SMS Parsing Profile!`,

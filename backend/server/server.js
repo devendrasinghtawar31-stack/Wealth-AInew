@@ -66,11 +66,19 @@ app.use(morgan("combined", {
     stream: { write: (message) => logger.info(message.trim()) }
 }));
 
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://wealth-ainew2.onrender.com'
+];
 
 app.use(cors({
-    origin: [process.env.FRONTEND_URL || "https://wealth-ainew.onrender.com", "http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS Policy Blocked'));
+        }
+    },
     credentials: true
 }));
 
@@ -108,19 +116,18 @@ app.use("/api/crypto", cryptoRoutes)
 
 
 
-/// Root directory se frontend/dist ka path
-const distPath = path.resolve('frontend', 'dist');
+if (process.env.NODE_ENV === 'production') {
+    const distPath = path.resolve(__dirname, '../frontend/dist'); // Sahi path check kar
+    app.use(express.static(distPath));
 
-app.use(express.static(distPath));
-
-// Server.js mein ye route update karo
-app.get(/(.*)/, (req, res) => {
-    if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(distPath, 'index.html'));
-    } else {
-        res.status(404).json({ message: "API route not found" });
-    }
-});
+    app.get(/(.*)/, (req, res) => {
+        if (!req.path.startsWith('/api')) {
+            res.sendFile(path.join(distPath, 'index.html'));
+        } else {
+            res.status(404).json({ message: "API route not found" });
+        }
+    });
+}
 
 
 app.use(errorHandler)

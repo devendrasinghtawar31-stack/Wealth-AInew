@@ -6,7 +6,7 @@ const ChatWindow = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Devendra bhai, Welcome to Wealth AI Advisor Terminal. Kya gyan chahiye aaj? 🧠",
+      text: " Welcome to Wealth AI Advisor Terminal. Kya gyan chahiye aaj? 🧠",
       isBot: true,
     },
   ]);

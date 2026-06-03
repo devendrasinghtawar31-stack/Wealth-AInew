@@ -1,0 +1,11 @@
+:root {
+  --transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+body {
+  transition: var(--transition);
+}
+
+div, header, button, main {
+  transition: var(--transition);
+}

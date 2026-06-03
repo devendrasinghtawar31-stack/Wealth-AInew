@@ -16,15 +16,26 @@ import ProtectedRoute from './middleware/ProtectedRoute';
 const App = () => {
     return (
         <Routes>
-            {/* Public Routes */}
+            {/* Public Routes - Ye alag rahenge */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             
-            {/* Protected Wrapper */}
+            {/* Protected Routes - Nesting yahan zaruri hai */}
             <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                {/* Parent Dashboard Route */}
+                <Route path="/dashboard" element={<Dashboard />}>
+                    {/* Index matlab /dashboard pe ye dikhega */}
+                    <Route index element={<FinancialDashboard />} />
+                    <Route path="overview" element={<FinancialDashboard />} />
+                    <Route path="goals" element={<GoalsDashboard />} />
+                    <Route path="crypto" element={<CryptoMarket />} /> {/* Path 'crypto' hai */}
+                    <Route path="ai-advisor" element={<AiChatDashboard />} />
+                </Route>
+                
+                {/* Dashboard ke bahar wale protected routes */}
                 <Route path="/bank-onboarding" element={<BankOnboarding />} />
-                {/* Yahan baaki sub-routes add kar lo */}
             </Route>
             
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

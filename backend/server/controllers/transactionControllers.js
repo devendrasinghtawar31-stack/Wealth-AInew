@@ -74,29 +74,31 @@ const getTransactionStats = asyncHandler(async (req, res, next) => {
 
 
 const processIncomingSms = asyncHandler(async (req, res, next) => { 
+
+    console.log("--> Debug Auth: User ID is", req.user?._id);
+console.log("--> Debug Banks: User has banks", req.user?.associatedBanks);
+  
     // frontend ab text ke sath sender id bhi bheje ga jese ki boi ki booind etc
     const { smsText, sender } = req.body;
+    const user = req.user;
 
     console.log(`--> 1. API Hit: Sender [${sender || 'Unknown'}], Message: ${smsText}`);
-
-
     //check karo ki sms text aaya bhi ya nahi
     if (!smsText) {
         return next(new ErrorResponse("bhai ,sms text bhjna zaroori hai", 400));
     } 
-
     // 🔥 SENDER SECURITY FILTER (Tumhara demanded logic)
     if (sender) {
         // 1. Agar sender 10 digit ka normal number hai (pure numbers), toh block karo
         const isMobileNumber = /^\d{10}$/.test(sender.trim());
         
+   //database se user ki chuni hui bank nikalna
+        const userBanks = req.user?.associatedBanks || [];
         // 2. Bank ke standard keywords check karo sender string mein
-        const sndr = sender.toLowerCase();
+        const sndr = sender ? sender.toLowerCase() : '';
 
         const hasBankKeyword = sndr.includes('bk') || sndr.includes('bnk');
 
-        //database se user ki chuni hui bank nikalna
-        const userBanks = req.user?.associatedBanks || [];
 
         //dynamic loops : kya incoming sender mein user ki kisi select ki hui bank ka naam chuppa hai?\
         const matchesUserBank = userBanks.some(bank => sndr.includes(bank.toLowerCase()));
@@ -111,7 +113,14 @@ const processIncomingSms = asyncHandler(async (req, res, next) => {
     }
 
      //apne util brain (parser) ko sms bhejo data nikalne ke lie
-        const parsedData = parseSMS(smsText);
+    const parsedData = parseSMS(smsText);
+    if (parsedData.ignore) {
+        return next(new ErrorResponse("Bhai, Ye SMS kisi valid bank ya transactional head se nahi aaya hai.", 400));
+    }
+    if (parsedData.amount <= 0 || parsedData.type === 'pending' || !parsedData.title) {
+    console.log("--> Parsing Failed: Regex kuch nikal nahi paya", parsedData);
+    return next(new ErrorResponse("Bhai, SMS se details nahi nikal paayi. Shayad format match nahi hua.", 400));
+}
        
         //agar regex ko amount nahi ,milta to mtlb ye bank ka transactional sms nahi hai
         if (parsedData.amount === 0) { 

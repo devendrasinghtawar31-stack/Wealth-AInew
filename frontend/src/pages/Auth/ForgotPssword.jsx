@@ -38,26 +38,24 @@ const handleSubmit = async (e) => {
     setError('');
     setLoading(true);
 
-    const { identifier, notificationMethod } = formData;
+    // Backend ke hisab se keys match karo
+    const payload = {
+        identity: formData.identifier,        // Backend mein 'identity' hai
+        method: formData.notificationMethod    // Backend mein 'method' hai
+    };
 
     try {
-        // Explicitly headers pass karo taaki backend ko body mil sake
-      // Clean version
-const response = await API.post('/users/forgotpassword', { 
-    identity: identifier, 
-    method: notificationMethod 
-});
+        const response = await API.post('/users/forgotpassword', payload);
 
         if (response.data?.success) {
             alert("OTP sent successfully!");
             navigate('/verify-otp', {
-                state: { flow: 'forgot', identity: identifier }
+                state: { flow: 'forgot', identity: formData.identifier }
             });
         }
     } catch (err) {
         console.error("Full Error:", err);
-        // Backend se aaye error message ko priority do
-        const serverMessage = err.response?.data?.message || 'Server tak baat nahi pahunchi, network issue hai!';
+        const serverMessage = err.response?.data?.message || 'Server tak baat nahi pahunchi!';
         setError(serverMessage);
     } finally {
         setLoading(false);

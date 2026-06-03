@@ -88,7 +88,7 @@ const getCryptoLiveRateInCoins = async (cryptoName) => {
         // Fallback: Agar API gusse me block kar de ya down ho, toh server crash na ho,
         // ek safe default backup rate return kar do temporary.
         
-        const backupRates = { BTC: 5400000, ETH: 300000, SQL: 12000 };
+        const backupRates = { BTC: 5400000, ETH: 300000, SOL: 12000 };
         return backupRates[cryptoName.toUpperCase()] || null;
     }
 };

@@ -7,63 +7,85 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // AuthContext.jsx mein fetchUser function ko update karo
-const fetchUser = async () => {
-    const token = tokenStorage.getAccess();
-    
-    // Yahan condition lagao: agar token nahi hai, to direct return ho jao
-    if (!token) {
+// AuthContext.jsx
+    const fetchUser = async () => {
+        setLoading(true);
+    const token = localStorage.getItem('token');
+    if (!token || token === "undefined") {
         setLoading(false);
         return;
     }
-
     try {
         const { data } = await API.get('/users/profile');
         if (data.success) setUser(data.user);
     } catch (error) {
-        // Sirf tabhi clean karo agar error 401/403 hai
-        tokenStorage.clearAuth();
+        // Sirf tab clear karo jab token expired/invalid ho
+        if (error.response?.status === 401) {
+            localStorage.clear();
+            setUser(null);
+        }
     } finally {
-        setLoading(false);
+        setLoading(false); // Ye finally mein hona chahiye
     }
-};
+    };
+    
+    useEffect(() => {
         fetchUser();
     }, []);
 
- const loginUser = async (identifier, password) => {
-    const res = await API.post('/users/login', { identifier, password });
+// AuthContext.jsx - Update this function
+    const loginUser = async (identifier, password) => {
+        setLoading(true);
+    console.log("Login function called with:", identifier); // 1. Check if it triggers
     
-    // Yahan check kar: kya response mein `res.data.user` hai ya sirf `res.data`?
-    console.log("Full Response:", res.data); 
-    
-    const { accessToken, refreshToken, user } = res.data;
-    tokenStorage.setAccess(accessToken);
-    tokenStorage.setRefresh(refreshToken);
-    
-    // YE LINE ZAROORI HAI: agar user undefined aa raha hai, to res.data daal
-    setUser(user || res.data); 
-    return res;
+    try {
+        const res = await API.post('/users/login', { identifier, password });
+        console.log("API Response received:", res.data); // 2. Check if API returns data
+
+        const { token, refreshToken, user } = res.data;
+        
+        localStorage.setItem("token", token);
+        localStorage.setItem("refreshToken", refreshToken);
+        
+        setUser(user); 
+        console.log("User state updated successfully"); // 3. Check if this logs
+        await fetchUser();
+        return res;
+    } catch (err) {
+        console.error("Login Error in Context:", err.response?.data || err.message); // 4. Check if error is swallowed
+        throw err;
+    }finally {
+        setLoading(false); // Process end
+    }
 };
 
-// AuthContext.jsx
-const logoutUser = () => {
-    // 1. Sabse aggressive tareeke se cleanup
-    localStorage.clear();
-    sessionStorage.clear();
-    tokenStorage.clearAuth();
-    
-    // 2. State reset
-    setUser(null);
-    
-    // 3. Force replace (History saaf ho jayegi, back button se dashboard nahi khulega)
-    window.location.replace('/login');
+    const logoutUser = () => {
+        localStorage.clear();
+        tokenStorage.clearAuth();
+        setUser(null);
+        window.location.replace('/login');
+    };
+
+const refreshUser = async () => {
+    try {
+        // Tumhara backend ka endpoint jo user ka current profile/data deta hai
+        const response = await API.get('/users/profile');
+        console.log("--> Refreshing User State from API:", response.data.user.associatedBanks);
+        if(response.data.success) {
+            setUser(response.data.user); // Yahan naya data set ho jayega
+        }
+    } catch (error) {
+        console.error("Failed to refresh user state", error);
+    }
 };
+
+
     return (
-        <AuthContext.Provider value={{ user, loading, loginUser, logoutUser }}>
+        <AuthContext.Provider value={{ user, loading, loginUser, logoutUser, fetchUser, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
+// Yahan export ka tarika ekdum clear rakho
 export const useAuth = () => useContext(AuthContext);

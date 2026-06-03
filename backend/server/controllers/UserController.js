@@ -165,6 +165,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
     try {
         // 💡 Synchronous Verification: Yeh bina kisi confusion ke direct .env ka refresh secret use karega
         const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+        console.log("Secret being used:", process.env.JWT_REFRESH_SECRET);
 
         // Agar chabi asli hai, toh database se user verify karo
         const user = await User.findById(decoded.id);
@@ -188,6 +189,7 @@ const loginUser = asyncHandler(async (req, res, next) => {
     } catch (error) {
         // Agar token sach mein expire ho gaya ya koi chhedchhad hui
         console.error("Verification Error:", error.message);
+        console.log("Secret being used:", process.env.JWT_REFRESH_SECRET);
         return next(new ErrorResponse("Refresh token expire ya galat hai. Dubara login karo!", 403));
     }
 });
@@ -402,16 +404,23 @@ const sendOTP = asyncHandler(async (req, res, next) => {
 
 
 const forgotPassword = asyncHandler(async (req, res, next) => {
- const { identity, method } = req.body;
-    
-    // Normalize identity (email to lowercase)
-    const normalizedIdentity = identity.toLowerCase().trim();
+    const { identity, method } = req.body;
 
-    // User find karte waqt check karo
+    // 1. Validation
+    if (!identity || !method) {
+        return next(new ErrorResponse("Identity aur method dono zaroori hain", 400));
+    }
+
+    const phoneRaw = identity.trim();
+    const phoneWithCode = phoneRaw.startsWith('+91') ? phoneRaw : `+91${phoneRaw}`;
+    const emailNormalized = identity.toLowerCase().trim();
+
+    // 2. Smart User Lookup (Handles both formats)
     const user = await User.findOne({
         $or: [
-            { email: normalizedIdentity }, 
-            { phone: identity.trim() } // Phone number trim rakho
+            { email: emailNormalized },
+            { phone: phoneRaw },
+            { phone: phoneWithCode }
         ]
     });
 
@@ -419,19 +428,27 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
         return next(new ErrorResponse("Is identity se koi user nahi mila", 404));
     }
 
-    // OTP save karte waqt 'email' aur 'phone' dono field bhejo, jo nahi hai wo null/undefined rehne do
-    await OTP.deleteMany({ purpose: 'forgot', $or: [{ email: user.email }, { phone: user.phone }] });
-    
-    await OTP.create({
-        email: user.email || undefined,
-        phone: user.phone || undefined,
-        otp,
-        purpose: 'forgot'
+    // 3. OTP Generation
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 4. Cleanup old OTPs for this user (Purpose: forgot)
+    await OTP.deleteMany({ 
+        purpose: 'forgot', 
+        $or: [{ email: user.email }, { phone: user.phone }] 
     });
+
+    // 5. Create new OTP record
+ // 5. Create new OTP record (Dono fields save karo!)
+await OTP.create({
+    email: user.email, // Har baar save karo
+    phone: user.phone, // Har baar save karo
+    otp,
+    purpose: 'forgot'
+});
 
     const message = `Your WealthAI password reset OTP: ${otp}. Valid for 5 min only.`;
 
-    // 5. Method ke basis par OTP bhejna
+    // 6. Execution
     try {
         if (method === 'email') {
             await sendEmail({
@@ -451,16 +468,17 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 
         res.status(200).json({
             success: true,
-            message: "OTP bhej dia gaya hai"
+            message: "OTP bhej diya gaya hai"
         });
 
     } catch (err) {
         console.error("FORGOT SYSTEM CATCH ERROR: ", err);
+        // Cleanup on failure
         await OTP.deleteMany({ 
-            $or: [{ email: user.email }, { phone: user.phone }], 
-            purpose: 'forgot' 
+            purpose: 'forgot', 
+            $or: [{ email: user.email }, { phone: user.phone }] 
         });
-        return next(new ErrorResponse("OTP nahi ja paya, try again", 500));
+        return next(new ErrorResponse("OTP nahi ja paya, try again later", 500));
     }
 });
 
@@ -525,63 +543,70 @@ const updateSelectBanks = asyncHandler(async (req, res, next) => {
 // @route   POST /api/users/verify-otp
 // @route   POST /api/users/verify-otp
 const verifyOTP = asyncHandler(async (req, res, next) => {
-    const { identity, otp, password, flow, name, email, phone, currency } = req.body;
-    
-    if (!otp || !flow || !identity) {
-        return next(new ErrorResponse("OTP, Flow, aur Identity missing hai!", 400));
+    // Register flow ke liye name, email, phone, password bhi expected hain
+    const { otp, password, identity, flow, name, email, phone } = req.body;
+
+    if (!otp || !identity || !flow) {
+        return next(new ErrorResponse("OTP, Identity, aur Flow zaroori hain", 400));
     }
 
-    const normalizedIdentity = identity.toString().toLowerCase().trim();
-    const isEmail = normalizedIdentity.includes('@');
+    const trimmedIdentity = identity.trim();
+    const emailIdentity = trimmedIdentity.toLowerCase();
 
-    // 1. Fixed OTP Query: Sirf wahi field check karega jo identity mein hai
-    const otpQuery = {
+    // 1. UNIVERSAL OTP FINDER
+    const otpRecord = await OTP.findOne({
+        otp: otp.toString().trim(),
         purpose: flow,
-        otp: otp.toString().trim()
-    };
-    
-    if (isEmail) {
-        otpQuery.email = normalizedIdentity;
-    } else {
-        otpQuery.phone = normalizedIdentity;
-    }
+        $or: [
+            { email: emailIdentity },
+            { phone: trimmedIdentity },
+            { phone: `+91${trimmedIdentity}` }
+        ]
+    });
 
-    const otpRecord = await OTP.findOne(otpQuery);
     if (!otpRecord) {
+        console.log("OTP not found for:", { identity, otp, flow });
         return next(new ErrorResponse("OTP Expired ya galat hai, phir se try karo!", 400));
     }
 
-    // 2. Logic Execution
-    if (flow === 'register') {
-        if (!name || !email || !phone) {
-            return next(new ErrorResponse("Registration ke liye Name, Email, aur Phone zaroori hain!", 400));
-        }
-
-        const userExists = await User.findOne({
-            $or: [{ email: email.toLowerCase().trim() }, { phone: phone.trim() }]
-        });
-        if (userExists) return next(new ErrorResponse("Ye user pehle se registered hai!", 400));
-
-        const user = await User.create({ name, email: email.toLowerCase().trim(), phone, password, currency });
-        await OTP.deleteMany({ email: email.toLowerCase().trim(), purpose: 'register' });
-        
-        return res.status(201).json({ success: true, message: "Registration successful!" });
-
-    } else if (flow === 'forgot') {
-        if (!password) return next(new ErrorResponse("Naya password daalna zaroori hai!", 400));
-
+    // 2. Action Logic based on Flow
+    if (flow === 'forgot') {
         const user = await User.findOne({
-            $or: [{ email: normalizedIdentity }, { phone: normalizedIdentity }]
+            $or: [
+                { email: emailIdentity },
+                { phone: trimmedIdentity },
+                { phone: `+91${trimmedIdentity}` }
+            ]
         });
 
-        if (!user) return next(new ErrorResponse("User nahi mila!", 404));
+        if (!user) {
+            return next(new ErrorResponse("User nahi mila!", 404));
+        }
 
         user.password = password;
         await user.save();
-        await OTP.deleteMany(otpQuery);
+    } 
+    else if (flow === 'register') {
+        // Naya user create karo
+        const newUser = await User.create({
+            name,
+            email: email || emailIdentity,
+            phone: phone || trimmedIdentity,
+            password
+        });
 
-        return res.status(200).json({ success: true, message: "Password badal gaya, ab login karo!" });
+        if (!newUser) {
+            return next(new ErrorResponse("User create karne mein dikkat aayi!", 500));
+        }
     }
+
+    // 3. Cleanup
+    await OTP.deleteOne({ _id: otpRecord._id });
+    
+    return res.status(200).json({ 
+        success: true, 
+        message: flow === 'register' ? "Registration successful!" : "Verification successful!" 
+    });
 });
 const userController = { registerUser, loginUser ,getUserProfile,updateUserProfile,sendOTP,forgotPassword,updateSelectBanks, refreshAccessToken , verifyOTP };
 
