@@ -116,18 +116,18 @@ app.use("/api/crypto", cryptoRoutes)
 
 
 
-if (process.env.NODE_ENV === 'production') {
-    const distPath = path.resolve(__dirname, '../frontend/dist'); // Sahi path check kar
-    app.use(express.static(distPath));
+// if (process.env.NODE_ENV === 'production') {
+//     const distPath = path.resolve(__dirname, 'frontend', 'dist'); // Sahi path check kar
+//     app.use(express.static(distPath));
 
-    app.get(/(.*)/, (req, res) => {
-        if (!req.path.startsWith('/api')) {
-            res.sendFile(path.join(distPath, 'index.html'));
-        } else {
-            res.status(404).json({ message: "API route not found" });
-        }
-    });
-}
+//     app.get(/(.*)/, (req, res) => {
+//         if (!req.path.startsWith('/api')) {
+//             res.sendFile(path.join(distPath, 'index.html'));
+//         } else {
+//             res.status(404).json({ message: "API route not found" });
+//         }
+//     });
+// }
 
 
 app.use(errorHandler)
