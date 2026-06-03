@@ -68,7 +68,7 @@ app.use(morgan("combined", {
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://wealth-ainew2.onrender.com'
+    'https://wealth-ainew.onrender.com'
 ];
 
 app.use(cors({
